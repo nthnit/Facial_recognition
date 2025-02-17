@@ -18,7 +18,7 @@ const data = [
     { key: "2", class: "Vật lý", teacher: "Trần Thị B", students: 28 },
 ];
 
-const ClassList = () => {
+const ClassTracking = () => {
     return (
         <div style={{ padding: 20 }}>
             <h2>Danh sách Lớp học</h2>
@@ -27,4 +27,4 @@ const ClassList = () => {
     );
 };
 
-export default ClassList;
+export default ClassTracking;

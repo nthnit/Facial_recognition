@@ -1,11 +1,14 @@
 import React from "react";
+import { ConfigProvider, App as AntdApp } from "antd";
 import AppRoutes from "./routes";
 
 function App() {
     return (
-        <div>
-            <AppRoutes />
-        </div>
+        <ConfigProvider theme={{}}>
+            <AntdApp>
+                <AppRoutes />
+            </AntdApp>
+        </ConfigProvider>
     );
 }
 

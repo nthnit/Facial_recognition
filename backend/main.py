@@ -1,10 +1,17 @@
 from fastapi import FastAPI
-from routes.auth import router as auth_router
+from fastapi.middleware.cors import CORSMiddleware
+from routes import router  # Import tất cả các routes
 
 app = FastAPI()
 
-app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+# Cấu hình CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Cho phép frontend React truy cập
+    allow_credentials=True,
+    allow_methods=["*"],  # Cho phép tất cả các phương thức (GET, POST, PUT, DELETE)
+    allow_headers=["*"],  # Cho phép tất cả các headers
+)
 
-@app.get("/")
-def home():
-    return {"message": "Welcome to the School Management API"}
+# Thêm các router vào ứng dụng
+app.include_router(router)
