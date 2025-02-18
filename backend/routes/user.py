@@ -105,3 +105,29 @@ def check_email(email: str, db: Session = Depends(get_db)):
 
 
 
+# lấy thông tin tài khoản
+from fastapi.security import OAuth2PasswordBearer
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# [API GET + token] /users/user/info
+@router.get("/user/info")
+def get_user_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    # Tìm người dùng theo token trong cột access_token
+    user = db.query(User).filter(User.access_token == token).first()
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ hoặc đã hết hạn")
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "phone_number": user.phone_number,
+        "role": user.role,
+        "date_of_birth": user.date_of_birth
+    }
+
+
+
+

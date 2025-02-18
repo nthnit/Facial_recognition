@@ -11,3 +11,7 @@ class LoginResponse(BaseModel):
     token_type: str
     role: str
     id:int
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str

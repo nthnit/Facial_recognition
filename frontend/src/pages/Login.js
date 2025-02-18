@@ -34,7 +34,7 @@ const Login = () => {
             } else if (role === "teacher") {
                 navigate("/teacher/dashboard");
             } else if (role === "manager") {
-                navigate("/manager/assign");
+                navigate("/manager/dashboard");
             } else {
                 navigate("/"); // Mặc định về trang chủ nếu role không khớp
             }
