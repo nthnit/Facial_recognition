@@ -10,6 +10,7 @@ import {
     LogoutOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
+    TeamOutlined, // ✅ Thêm icon giáo viên
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -43,6 +44,7 @@ const Sidebar = () => {
         manager: [
             { key: "/manager/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
             { key: "/manager/students", icon: <UserOutlined />, label: "Quản lý học sinh" },
+            { key: "/manager/teachers", icon: <TeamOutlined />, label: "Quản lý giáo viên" }, // ✅ Thêm menu giáo viên
             { key: "/manager/assign", icon: <SolutionOutlined />, label: "Phân công giảng viên" },
             { key: "/manager/news", icon: <DashboardOutlined />, label: "Cập nhật tin tức" },
             { key: "/manager/classes", icon: <BookOutlined />, label: "Theo dõi lớp học" },
@@ -61,7 +63,6 @@ const Sidebar = () => {
         localStorage.removeItem("role");
         window.location.href = "/login"; 
     };
-    
 
     return (
         <Sider collapsible collapsed={collapsed} trigger={null} style={{ height: "100vh" }}>

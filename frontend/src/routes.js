@@ -5,6 +5,9 @@ import MainLayout from "./components/MainLayout";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/common/NotFound";
+
+// general routes
+import StudentDetail from "./pages/StudentDetail";
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
 import BannerManagement from "./pages/admin/BannerManagement";
@@ -15,6 +18,7 @@ import AssignTeaching from "./pages/manager/AssignTeaching";
 import StudentManagement from "./pages/manager/StudentManagement";
 import NewsManagement from "./pages/manager/NewsManagement";
 import ClassTracking from "./pages/manager/ClassTracking";
+import TeacherManagement from "./pages/manager/TeacherManagement";
 
 // Teacher Pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
@@ -44,12 +48,18 @@ const AppRoutes = () => {
                         <Route path="manager/news" element={<NewsManagement />} />
                         <Route path="manager/classes" element={<ClassTracking />} />
                         <Route path="manager/profile" element={<Profile />} />
+                        <Route path="manager/teachers" element={<TeacherManagement />} />
+                        <Route path="manager/students/:id" element={<StudentDetail />} />
 
                         {/* 📌 Routes cho Giảng viên */}
                         <Route path="teacher/dashboard" element={<TeacherDashboard />} />
                         <Route path="teacher/schedule" element={<TeachingSchedule />} />
                         <Route path="teacher/classes" element={<MyClasses />} />
                         <Route path="teacher/profile" element={<Profile />} />
+
+
+                        
+
                     </Route>
                 </Route>
 

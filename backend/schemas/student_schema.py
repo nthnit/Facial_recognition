@@ -9,8 +9,8 @@ class StudentCreate(BaseModel):
     phone_number: Optional[str] = None
     address: Optional[str] = None
     date_of_birth: Optional[date] = None
-    admission_year: int
-    status: str
+    admission_year: Optional[int] = None  # Để None nếu không có
+    status: Optional[str] = "active"
     image: Optional[str] = None
 
 # Schema để cập nhật sinh viên
@@ -32,11 +32,11 @@ class StudentResponse(BaseModel):
     phone_number: Optional[str] = None
     address: Optional[str] = None
     date_of_birth: Optional[date] = None
-    admission_year: int
+    admission_year: Optional[int] = None
     status: str
     created_at: datetime
     updated_at: datetime
     image: Optional[str] = None
 
     class Config:
-        from_attributes = True  # ✅ Thay `orm_mode = True`
+        from_attributes = True  # Hỗ trợ lấy từ SQLAlchemy model
