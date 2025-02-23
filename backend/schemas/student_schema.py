@@ -7,7 +7,7 @@ class StudentCreate(BaseModel):
     full_name: str
     email: EmailStr
     phone_number: Optional[str] = None
-    address: Optional[str] = None
+    address: Optional[str] = "Chưa cập nhật"
     date_of_birth: Optional[date] = None
     admission_year: Optional[int] = None  # Để None nếu không có
     status: Optional[str] = "active"

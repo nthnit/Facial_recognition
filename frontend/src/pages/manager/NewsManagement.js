@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { List, Input, Button, message, Modal, Form, Space, Pagination } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from "@ant-design/icons";
+import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
 
 const { TextArea } = Input;
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 const NewsManagement = () => {
     const [newsList, setNewsList] = useState([]);
@@ -17,6 +19,7 @@ const NewsManagement = () => {
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(5);
+    const [uploading, setUploading] = useState(false);
 
     // Lấy token từ localStorage để gửi trong request
     const getAuthHeaders = () => {
@@ -35,7 +38,7 @@ const NewsManagement = () => {
     const fetchNews = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/news", {
+            const response = await axios.get(`${API_BASE_URL}/news`, {
                 headers: getAuthHeaders(),
             });
             setNewsList(response.data);
@@ -48,14 +51,24 @@ const NewsManagement = () => {
     const handleAddNews = async () => {
         try {
             const values = await form.validateFields();
-            await axios.post("http://127.0.0.1:8000/news", values, {
+    
+            const requestData = {
+                title: values.title,
+                content: values.content,
+                image_url: values.image_url || null, // ✅ Đảm bảo giá trị null nếu không có ảnh
+                status: "active", // ✅ Cần đảm bảo gửi đúng kiểu enum
+            };
+    
+            await axios.post(`${API_BASE_URL}/news`, requestData, {
                 headers: getAuthHeaders(),
             });
+    
             message.success("Đăng tin thành công!");
             setIsModalOpen(false);
             fetchNews();
             form.resetFields();
         } catch (error) {
+            console.error(error);
             message.error("Lỗi khi đăng tin.");
         }
     };
@@ -63,14 +76,24 @@ const NewsManagement = () => {
     const handleEditNews = async (id) => {
         try {
             const values = await form.validateFields();
-            await axios.put(`http://127.0.0.1:8000/news/${id}`, values, {
+    
+            const requestData = {
+                title: values.title,
+                content: values.content,
+                image_url: values.image_url || null, // ✅ Đảm bảo giá trị null nếu không có ảnh
+                status: "active", // ✅ Kiểu enum
+            };
+    
+            await axios.put(`${API_BASE_URL}/news/${id}`, requestData, {
                 headers: getAuthHeaders(),
             });
+    
             message.success("Cập nhật tin tức thành công!");
             setIsModalOpen(false);
             fetchNews();
             form.resetFields();
         } catch (error) {
+            console.error(error);
             message.error("Lỗi khi cập nhật tin tức.");
         }
     };
@@ -81,7 +104,7 @@ const NewsManagement = () => {
             content: "Bạn có chắc chắn muốn xoá tin tức này không?",
             onOk: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:8000/news/${id}`, {
+                    await axios.delete(`${API_BASE_URL}/news/${id}`, {
                         headers: getAuthHeaders(),
                     });
                     message.success("Xóa tin tức thành công!");
@@ -110,6 +133,40 @@ const NewsManagement = () => {
         setEditingNews(news);
         setIsModalOpen(true);
         form.setFieldsValue(news || { title: "", content: "", image_url: "" });
+    };
+
+    // Xử lý upload ảnh lên Cloudinary
+    const handleUpload = async ({ file }) => {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+    
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                message.error("Bạn chưa đăng nhập!");
+                navigate("/login");
+                return;
+            }
+    
+            const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    Authorization: `Bearer ${token}`, // ✅ Gửi token khi upload ảnh
+                },
+            });
+    
+            // Lấy URL từ Cloudinary và set vào form
+            form.setFieldsValue({ image_url: response.data.image_url });
+            message.success("Ảnh đã tải lên Cloudinary!");
+        } catch (error) {
+            if (error.response?.status === 403) {
+                message.error("Bạn không có quyền upload ảnh.");
+            } else {
+                message.error("Lỗi khi tải ảnh lên Cloudinary.");
+            }
+        }
+        setUploading(false);
     };
 
     return (
@@ -169,7 +226,7 @@ const NewsManagement = () => {
                     setPageSize(size);
                 }}
                 showSizeChanger
-                pageSizeOptions={["5", "10", "15", "20"]} // ✅ Chỉ cho phép chọn 5, 10, 15, 20 tin tức trên mỗi trang
+                pageSizeOptions={["5", "10", "15", "20"]}
                 style={{ marginTop: 20, textAlign: "center" }}
             />
 
@@ -194,8 +251,13 @@ const NewsManagement = () => {
                     >
                         <TextArea rows={4} />
                     </Form.Item>
-                    <Form.Item label="Hình ảnh (URL)" name="image_url">
-                        <Input placeholder="Nhập đường dẫn hình ảnh..." />
+                    <Form.Item label="Tải ảnh lên">
+                        <Upload customRequest={handleUpload} showUploadList={false}>
+                            <Button icon={<UploadOutlined />} loading={uploading}>Chọn ảnh</Button>
+                        </Upload>
+                    </Form.Item>
+                    <Form.Item label="Ảnh đã tải lên" name="image_url">
+                        <Input placeholder="Đường dẫn ảnh" readOnly />
                     </Form.Item>
                 </Form>
             </Modal>

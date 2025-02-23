@@ -54,7 +54,7 @@ def create_student(
         full_name=student_data.full_name,
         email=student_data.email,
         phone_number=student_data.phone_number,
-        address=student_data.address,
+        address=student_data.address or "Chưa cập nhật",  # ✅ Đảm bảo không bị NULL
         date_of_birth=date_of_birth,
         admission_year=student_data.admission_year if student_data.admission_year else 2024,
         status=student_data.status,
@@ -66,6 +66,7 @@ def create_student(
     db.refresh(new_student)
     
     return new_student
+
 
 # 🟠 API PUT: Cập nhật thông tin học sinh (chỉ Manager có quyền)
 @router.put("/{student_id}", response_model=StudentResponse)

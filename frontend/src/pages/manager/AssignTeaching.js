@@ -1,39 +1,43 @@
 import React, { useState, useEffect } from "react";
 import { Table, Select, Button, Space, message, Input } from "antd";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // ✅ Thêm dòng import này để sửa lỗi
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 const AssignTeaching = () => {
     const [classes, setClasses] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState("");
-    const navigate = useNavigate(); // ✅ Định nghĩa navigate
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchClasses();
         fetchTeachers();
     }, []);
 
-    // Lấy token từ localStorage để gửi trong request
+    // Lấy token từ localStorage
     const getAuthHeaders = () => {
         const token = localStorage.getItem("token");
         if (!token) {
             message.error("Bạn chưa đăng nhập!");
             navigate("/login");
+            return null;
         }
         return { Authorization: `Bearer ${token}` };
     };
 
-    // API lấy danh sách lớp học
+    // 🟢 Lấy danh sách lớp học
     const fetchClasses = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/classes", {
-                headers: getAuthHeaders(),
-            });
+            const headers = getAuthHeaders();
+            if (!headers) return;
+
+            const response = await axios.get(`${API_BASE_URL}/classes`, { headers });
             setClasses(response.data);
         } catch (error) {
             message.error("Lỗi khi tải danh sách lớp học.");
@@ -41,19 +45,26 @@ const AssignTeaching = () => {
         setLoading(false);
     };
 
-    // API lấy danh sách giảng viên
+    // 🟢 Lấy danh sách giảng viên
     const fetchTeachers = async () => {
         try {
-            const response = await axios.get("http://127.0.0.1:8000/teachers", {
-                headers: getAuthHeaders(),
-            });
+            const headers = getAuthHeaders();
+            if (!headers) return;
+
+            const response = await axios.get(`${API_BASE_URL}/teachers`, { headers });
             setTeachers(response.data);
         } catch (error) {
             message.error("Lỗi khi tải danh sách giảng viên.");
         }
     };
 
-    // Xử lý khi thay đổi giảng viên
+    // 🟢 Lấy tên giảng viên dựa trên `teacher_id`
+    const getTeacherName = (teacherId) => {
+        const teacher = teachers.find((t) => t.id === teacherId);
+        return teacher ? teacher.full_name : "Chưa phân công";
+    };
+
+    // 🟢 Cập nhật `teacher_id` khi chọn giảng viên
     const handleTeacherChange = (classId, teacherId) => {
         setClasses((prevClasses) =>
             prevClasses.map((cls) =>
@@ -62,32 +73,37 @@ const AssignTeaching = () => {
         );
     };
 
-    // Gửi API để cập nhật giảng viên cho lớp
+    // 🟢 Gửi API để cập nhật giảng viên cho lớp
     const handleAssign = async (classId, teacherId) => {
         try {
+            const headers = getAuthHeaders();
+            if (!headers) return;
+
             await axios.put(
-                `http://127.0.0.1:8000/classes/${classId}`,
+                `${API_BASE_URL}/classes/${classId}`,
                 { teacher_id: teacherId },
-                { headers: getAuthHeaders() }
+                { headers }
             );
             message.success("Phân công giảng viên thành công!");
+            fetchClasses(); // ✅ Cập nhật lại danh sách sau khi lưu
         } catch (error) {
             message.error("Lỗi khi phân công giảng viên.");
         }
     };
 
-    // Xử lý tìm kiếm lớp học
+    // 🟢 Xử lý tìm kiếm lớp học
     const handleSearch = (e) => {
         setSearchText(e.target.value.toLowerCase());
     };
 
-    // Lọc lớp học dựa trên tìm kiếm
+    // 🟢 Lọc lớp học dựa trên tìm kiếm
     const filteredClasses = classes.filter(
         (cls) =>
             cls.name.toLowerCase().includes(searchText) ||
             cls.class_code.toLowerCase().includes(searchText)
     );
 
+    // 🟢 Cột của bảng
     const columns = [
         {
             title: "Mã lớp",
@@ -105,7 +121,7 @@ const AssignTeaching = () => {
             key: "teacher_id",
             render: (_, record) => (
                 <Select
-                    value={record.teacher_id || "Chưa phân công"}
+                    value={record.teacher_id || null}
                     style={{ width: 200 }}
                     onChange={(value) => handleTeacherChange(record.id, value)}
                 >
@@ -117,6 +133,11 @@ const AssignTeaching = () => {
                     ))}
                 </Select>
             ),
+        },
+        {
+            title: "Tên giảng viên",
+            key: "teacher_name",
+            render: (_, record) => <span>{getTeacherName(record.teacher_id)}</span>,
         },
         {
             title: "Hành động",

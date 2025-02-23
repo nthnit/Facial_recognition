@@ -1,17 +1,16 @@
 from pydantic import BaseModel
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 # Schema để tạo lớp mới
 class ClassCreate(BaseModel):
     name: str
-    teacher_id: int
+    teacher_id: Optional[int] = None
     start_date: date
-    end_date: date
     total_sessions: int
-    subject: str
-    status: str
-    class_code: str
+    subject: Optional[str] = None
+    status: Optional[str] = None
+    weekly_schedule: Optional[List[int]] = None
 
 # Schema để cập nhật lớp học
 class ClassUpdate(BaseModel):
@@ -23,18 +22,21 @@ class ClassUpdate(BaseModel):
     subject: Optional[str] = None
     status: Optional[str] = None
     class_code: Optional[str] = None
+    weekly_schedule: Optional[List[int]] = None 
 
 # Schema để trả về thông tin lớp học
 class ClassResponse(BaseModel):
     id: int
     class_code: str
     name: str
-    teacher_id: Optional[int]
+    teacher_id: Optional[int]  # ✅ Giữ teacher_id để tránh lỗi
+    teacher_name: Optional[str] = None  # ✅ Thêm teacher_name để hiển thị tên giáo viên
     start_date: date
     end_date: date
     total_sessions: int
     subject: str
     status: str
+    weekly_schedule: Optional[List[int]] = None  # ✅ Thêm lịch học vào response
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # ✅ Hỗ trợ ORM mode để convert từ SQLAlchemy model

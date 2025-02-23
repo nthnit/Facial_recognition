@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, Space, Modal, Form, message, DatePicker } from "antd";
+import { Table, Button, Input, Space, Modal, Form, message, DatePicker, Select } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import moment from "moment";
 
+const { Option } = Select;
+
 const ClassTracking = () => {
     const [classes, setClasses] = useState([]);
     const [filteredClasses, setFilteredClasses] = useState([]);
+    const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClass, setEditingClass] = useState(null);
     const [searchText, setSearchText] = useState("");
     const [form] = Form.useForm();
+    const [weeklySchedule, setWeeklySchedule] = useState([]);
     const navigate = useNavigate();
 
     // Lấy token từ localStorage để gửi trong request
@@ -29,6 +33,7 @@ const ClassTracking = () => {
     // Fetch danh sách lớp học từ API
     useEffect(() => {
         fetchClasses();
+        fetchTeachers();
     }, []);
 
     const fetchClasses = async () => {
@@ -43,6 +48,18 @@ const ClassTracking = () => {
             handleRequestError(error, "Lỗi khi tải danh sách lớp học.");
         }
         setLoading(false);
+    };
+
+    // ✅ API lấy danh sách giáo viên
+    const fetchTeachers = async () => {
+        try {
+            const response = await axios.get("http://127.0.0.1:8000/teachers", {
+                headers: getAuthHeaders(),
+            });
+            setTeachers(response.data);
+        } catch (error) {
+            handleRequestError(error, "Lỗi khi tải danh sách giáo viên.");
+        }
     };
 
     const handleRequestError = (error, defaultMessage) => {
@@ -111,32 +128,39 @@ const ClassTracking = () => {
     };
 
     const handleOk = async () => {
-        try {
-            const values = await form.validateFields();
-            const payload = {
-                ...values,
-                start_date: values.start_date ? values.start_date.format("YYYY-MM-DD") : null,
-                end_date: values.end_date ? values.end_date.format("YYYY-MM-DD") : null,
-            };
+    try {
+        const values = await form.validateFields();
+        const payload = {
+            ...values,
+            start_date: values.start_date ? values.start_date.format("YYYY-MM-DD") : null,
+            total_sessions: Number(values.total_sessions),
+            teacher_id: values.teacher_id,
+            weekly_schedule: weeklySchedule.map(Number), // ✅ Chắc chắn gửi dạng List[int]
+        };
 
-            if (editingClass) {
-                await axios.put(`http://127.0.0.1:8000/classes/${editingClass.id}`, payload, {
-                    headers: getAuthHeaders(),
-                });
-                message.success("Cập nhật lớp học thành công!");
-            } else {
-                await axios.post("http://127.0.0.1:8000/classes", payload, {
-                    headers: getAuthHeaders(),
-                });
-                message.success("Thêm lớp học thành công!");
-            }
-            fetchClasses();
-            setIsModalOpen(false);
-            form.resetFields();
-        } catch (error) {
-            handleRequestError(error, "Lỗi khi lưu lớp học.");
+        console.log("Sending payload:", payload); // ✅ Kiểm tra dữ liệu trước khi gửi
+
+        if (editingClass) {
+            await axios.put(`http://127.0.0.1:8000/classes/${editingClass.id}`, payload, {
+                headers: getAuthHeaders(),
+            });
+            message.success("Cập nhật lớp học thành công!");
+        } else {
+            await axios.post("http://127.0.0.1:8000/classes", payload, {
+                headers: getAuthHeaders(),
+            });
+            message.success("Thêm lớp học thành công!");
         }
+
+        fetchClasses();
+        setIsModalOpen(false);
+        form.resetFields();
+    } catch (error) {
+        console.error("Error response:", error.response?.data); // ✅ Log lỗi để kiểm tra
+        handleRequestError(error, "Lỗi khi lưu lớp học.");
+    }
     };
+
 
     const handleDelete = async (id) => {
         Modal.confirm({
@@ -164,7 +188,7 @@ const ClassTracking = () => {
             render: (text, record) => <Link to={`/manager/classes/${record.id}`}>{text}</Link>,
         },
         { title: "Tên lớp", dataIndex: "name", key: "name" },
-        { title: "Giảng viên", dataIndex: "teacher_id", key: "teacher_id" },
+        { title: "Giảng viên", dataIndex: "teacher_name", key: "teacher_id" },
         { title: "Ngày bắt đầu", dataIndex: "start_date", key: "start_date", render: (date) => moment(date).format("DD-MM-YYYY") },
         { title: "Ngày kết thúc", dataIndex: "end_date", key: "end_date", render: (date) => moment(date).format("DD-MM-YYYY") },
         { title: "Số buổi học", dataIndex: "total_sessions", key: "total_sessions" },
@@ -200,6 +224,54 @@ const ClassTracking = () => {
                 <Form form={form} layout="vertical">
                     <Form.Item label="Tên lớp" name="name" rules={[{ required: true, message: "Vui lòng nhập tên lớp!" }]}>
                         <Input />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Giáo viên"
+                        name="teacher_id"
+                        rules={[{ required: true, message: "Vui lòng chọn giáo viên!" }]}
+                    >
+                        <Select placeholder="Chọn giáo viên">
+                            {teachers.map((teacher) => (
+                                <Select.Option key={teacher.id} value={teacher.id}>
+                                    {teacher.full_name}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item label="Mô tả" name="description">
+                        <Input.TextArea />
+                    </Form.Item>
+
+                    <Form.Item label="Môn học" name="subject" rules={[{ required: true, message: "Vui lòng nhập môn học!" }]}>
+                        <Input />
+                    </Form.Item>
+
+                    <Form.Item label="Ngày bắt đầu" name="start_date" rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu!" }]}>
+                        <DatePicker format="YYYY-MM-DD" />
+                    </Form.Item>
+
+                    <Form.Item label="Số buổi học" name="total_sessions" rules={[{ required: true, message: "Vui lòng nhập tổng số buổi học!" }]}>
+                        <Input type="number" min={1} />
+                    </Form.Item>
+
+                    <Form.Item label="Lịch học hàng tuần">
+                        <Select
+                            mode="multiple"
+                            placeholder="Chọn ngày học trong tuần"
+                            value={weeklySchedule}
+                            onChange={(value) => setWeeklySchedule(value)}
+                            style={{ width: "100%" }}
+                        >
+                            <Option value={0}>Thứ Hai</Option>
+                            <Option value={1}>Thứ Ba</Option>
+                            <Option value={2}>Thứ Tư</Option>
+                            <Option value={3}>Thứ Năm</Option>
+                            <Option value={4}>Thứ Sáu</Option>
+                            <Option value={5}>Thứ Bảy</Option>
+                            <Option value={6}>Chủ Nhật</Option>
+                        </Select>
                     </Form.Item>
                 </Form>
             </Modal>

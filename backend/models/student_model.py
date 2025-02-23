@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Integer, Enum, Date, DateTime
+from sqlalchemy import Column, Integer, String, Date, Enum, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database.mysql import Base
@@ -17,6 +17,8 @@ class Student(Base):
     image = Column(String(255), nullable=True)  # Field to store the image URL or path
     created_at = Column(DateTime, default=func.now())  # Lưu thời điểm tạo
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    
-    # Liên kết với bảng class_students để lấy danh sách lớp học
-    classes = relationship("Class", secondary="class_students", back_populates="students")
+
+    # 🔹 Sử dụng bảng trung gian ClassStudent thay vì `secondary="class_students"`
+    classes = relationship("ClassStudent", back_populates="student_rel", cascade="all, delete-orphan")
+
+    attendances = relationship("Attendance", back_populates="student")

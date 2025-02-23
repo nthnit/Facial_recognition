@@ -83,7 +83,10 @@ const StudentManagement = () => {
         setIsModalOpen(true);
         form.setFieldsValue(
             student
-                ? { ...student, date_of_birth: student.date_of_birth ? moment(student.date_of_birth) : null }
+                ? { 
+                    ...student, 
+                    date_of_birth: student.date_of_birth ? moment(student.date_of_birth) : null 
+                  }
                 : { full_name: "", email: "", phone_number: "", address: "", date_of_birth: null }
         );
     };
@@ -97,6 +100,7 @@ const StudentManagement = () => {
                 date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : null,
                 admission_year: values.admission_year || new Date().getFullYear(),
                 status: values.status || "active",
+                address: values.address || "Chưa cập nhật"
             };
 
             if (editingStudent) {
@@ -132,45 +136,11 @@ const StudentManagement = () => {
         }
     };
 
-    // 🔹 Xuất danh sách học sinh ra file Excel
-    const exportToExcel = () => {
-        if (students.length === 0) {
-            message.warning("Không có dữ liệu để xuất.");
-            return;
-        }
-
-        const dataToExport = students.map((student) => ({
-            "Mã sinh viên": student.id,
-            "Họ và Tên": student.full_name,
-            "Email": student.email,
-            "Số điện thoại": student.phone_number,
-            "Địa chỉ": student.address,
-            "Ngày sinh": student.date_of_birth ? moment(student.date_of_birth).format("DD-MM-YYYY") : "N/A",
-            "Năm nhập học": student.admission_year,
-            "Trạng thái": student.status,
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách học sinh");
-
-        XLSX.writeFile(workbook, "DanhSachHocSinh.xlsx");
-        message.success("Xuất danh sách học sinh thành công!");
-    };
-
     // 🔹 Cấu hình cột của bảng danh sách học sinh
     const columns = [
-        {
-            title: "Mã sinh viên",
-            dataIndex: "id",
-            key: "id",
-            render: (id) => (
-                <Typography.Link onClick={() => navigate(`/manager/students/${id}`)}>
-                    {id}
-                </Typography.Link>
-            ),
-        },
+        { title: "Mã sinh viên", dataIndex: "id", key: "id" },
         { title: "Họ và Tên", dataIndex: "full_name", key: "full_name" },
+        { title: "Năm nhập học", dataIndex: "admission_year", key: "admission_year" },
         { title: "Email", dataIndex: "email", key: "email" },
         { title: "Số điện thoại", dataIndex: "phone_number", key: "phone_number" },
         { title: "Địa chỉ", dataIndex: "address", key: "address" },
@@ -199,6 +169,33 @@ const StudentManagement = () => {
         },
     ];
 
+    // 🔹 Xuất danh sách học sinh ra file Excel
+    const exportToExcel = () => {
+        if (students.length === 0) {
+            message.warning("Không có dữ liệu để xuất.");
+            return;
+        }
+
+        const dataToExport = students.map((student) => ({
+            "Mã sinh viên": student.id,
+            "Họ và Tên": student.full_name,
+            "Email": student.email,
+            "Số điện thoại": student.phone_number,
+            "Địa chỉ": student.address,
+            "Ngày sinh": student.date_of_birth ? moment(student.date_of_birth).format("DD-MM-YYYY") : "N/A",
+            "Năm nhập học": student.admission_year,
+            "Trạng thái": student.status,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách học sinh");
+
+        XLSX.writeFile(workbook, "DanhSachHocSinh.xlsx");
+        message.success("Xuất danh sách học sinh thành công!");
+    };
+
+
     return (
         <div style={{ padding: 20 }}>
             <Title level={2}>Quản lý học sinh</Title>
@@ -212,6 +209,30 @@ const StudentManagement = () => {
                 </Button>
             </Space>
             <Table columns={columns} dataSource={filteredStudents} loading={loading} rowKey="id" />
+            <Modal 
+                title={editingStudent ? "Cập nhật học sinh" : "Thêm học sinh"} 
+                open={isModalOpen} 
+                onOk={handleOk} 
+                onCancel={() => setIsModalOpen(false)}
+            >
+                <Form form={form} layout="vertical">
+                    <Form.Item label="Họ và Tên" name="full_name" rules={[{ required: true, message: "Vui lòng nhập họ tên!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label="Email" name="email" rules={[{ required: true, type: "email", message: "Vui lòng nhập email hợp lệ!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label="Số điện thoại" name="phone_number" rules={[{ required: true, message: "Vui lòng nhập số điện thoại!" }]}>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label="Địa chỉ" name="address">
+                        <Input placeholder="Nhập địa chỉ học sinh" />
+                    </Form.Item>
+                    <Form.Item label="Ngày sinh" name="date_of_birth">
+                        <DatePicker format="YYYY-MM-DD" />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };
