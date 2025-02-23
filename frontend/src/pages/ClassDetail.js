@@ -107,7 +107,7 @@ const ClassDetail = () => {
 
     const openAttendanceModal = async (session) => {
         setCurrentSession(session);
-    
+        
         try {
             // 🔹 Gọi API để lấy trạng thái điểm danh hiện tại của session này
             const response = await axios.get(
@@ -115,21 +115,37 @@ const ClassDetail = () => {
                 { headers: getAuthHeaders() }
             );
     
-            // 🔹 Tạo object chứa trạng thái điểm danh
-            const studentAttendance = {};
-            session.students.forEach((student) => {
-                const attendanceRecord = response.data.find((att) => att.student_id === student.id);
-                studentAttendance[student.id] = attendanceRecord ? attendanceRecord.status : "Absent";
-            });
-    
-            setAttendanceData(studentAttendance);
+            if (response.data.length > 0) {
+                // 🔹 Nếu có dữ liệu điểm danh trước đó, sử dụng dữ liệu này
+                const studentAttendance = {};
+                session.students.forEach((student) => {
+                    const attendanceRecord = response.data.find((att) => att.student_id === student.id);
+                    studentAttendance[student.id] = attendanceRecord ? attendanceRecord.status : "Absent";
+                });
+                setAttendanceData(studentAttendance);
+            } else {
+                // 🔹 Nếu không có dữ liệu điểm danh, mặc định tất cả học sinh vắng mặt
+                const studentAttendance = {};
+                students.forEach((student) => {
+                    studentAttendance[student.id] = "Absent";
+                });
+                setAttendanceData(studentAttendance);
+            }
         } catch (error) {
             console.error("Lỗi khi lấy dữ liệu điểm danh:", error.response?.data || error);
-            message.error("Không thể lấy trạng thái điểm danh.");
+            message.warning("Chưa có dữ liệu điểm danh. Hãy thực hiện điểm danh lần đầu.");
+            
+            // 🔹 Nếu API thất bại, hiển thị danh sách học sinh để điểm danh lần đầu
+            const studentAttendance = {};
+            students.forEach((student) => {
+                studentAttendance[student.id] = "Absent";
+            });
+            setAttendanceData(studentAttendance);
         }
     
         setIsAttendanceModalOpen(true);
     };
+    
     
 
     const handleAttendanceChange = (studentId, checked) => {
@@ -313,7 +329,7 @@ const ClassDetail = () => {
                             ),
                         },
                     ]}
-                    dataSource={currentSession?.students || []}
+                    dataSource={currentSession?.students || students}
                     rowKey="id"
                 />
             </Modal>
