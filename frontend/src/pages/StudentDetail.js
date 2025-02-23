@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Card, Typography, Button, Space, Modal, Form, Input, message, Popconfirm, DatePicker } from "antd";
-import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileWordOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import jsPDF from "jspdf"; // ✅ Import jsPDF để xuất PDF
-import * as XLSX from "xlsx"; // ✅ Import để xuất Word
 import moment from "moment";
 
 const { Title, Text } = Typography;
@@ -17,16 +16,40 @@ const StudentDetail = () => {
     const [form] = Form.useForm();
     const [messageApi, contextHolder] = message.useMessage();
 
+    // Lấy token từ localStorage để gửi trong request
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            message.error("Bạn chưa đăng nhập!");
+            navigate("/login");
+        }
+        return { Authorization: `Bearer ${token}` };
+    };
+
     useEffect(() => {
         fetchStudent();
     }, []);
 
     const fetchStudent = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/students/${id}`);
+            const response = await axios.get(`http://127.0.0.1:8000/students/${id}`, {
+                headers: getAuthHeaders(),
+            });
             setStudent(response.data);
         } catch (error) {
-            messageApi.error("Lỗi khi tải thông tin học sinh.");
+            handleRequestError(error, "Lỗi khi tải thông tin học sinh.");
+        }
+    };
+
+    const handleRequestError = (error, defaultMessage) => {
+        if (error.response?.status === 401) {
+            message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+            localStorage.removeItem("token");
+            navigate("/login");
+        } else if (error.response?.status === 403) {
+            message.error("Bạn không có quyền thực hiện thao tác này!");
+        } else {
+            message.error(defaultMessage);
         }
     };
 
@@ -35,25 +58,29 @@ const StudentDetail = () => {
             const values = await form.validateFields();
             const payload = {
                 ...values,
-                date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : null,
+                date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : "2000-01-01",
             };
 
-            await axios.put(`http://127.0.0.1:8000/students/${id}`, payload);
+            await axios.put(`http://127.0.0.1:8000/students/${id}`, payload, {
+                headers: getAuthHeaders(),
+            });
             messageApi.success("Cập nhật thông tin thành công!");
             setIsModalOpen(false);
             fetchStudent();
         } catch (error) {
-            messageApi.error("Lỗi khi cập nhật.");
+            handleRequestError(error, "Lỗi khi cập nhật.");
         }
     };
 
     const handleDelete = async () => {
         try {
-            await axios.delete(`http://127.0.0.1:8000/students/${id}`);
+            await axios.delete(`http://127.0.0.1:8000/students/${id}`, {
+                headers: getAuthHeaders(),
+            });
             messageApi.success("Xóa học sinh thành công!");
             navigate("/students");
         } catch (error) {
-            messageApi.error("Lỗi khi xóa học sinh.");
+            handleRequestError(error, "Lỗi khi xóa học sinh.");
         }
     };
 
@@ -98,10 +125,16 @@ const StudentDetail = () => {
 
             <Modal title="Cập nhật thông tin" open={isModalOpen} onOk={handleUpdate} onCancel={() => setIsModalOpen(false)}>
                 <Form form={form} layout="vertical" initialValues={{ ...student, date_of_birth: moment(student.date_of_birth) }}>
-                    <Form.Item label="Họ và Tên" name="full_name" rules={[{ required: true }]}>
+                    <Form.Item label="Họ và Tên" name="full_name" rules={[{ required: true, message: "Vui lòng nhập họ tên!" }]}>
                         <Input />
                     </Form.Item>
                     <Form.Item label="Email" name="email">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label="Số điện thoại" name="phone_number">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label="Địa chỉ" name="address">
                         <Input />
                     </Form.Item>
                     <Form.Item label="Ngày sinh" name="date_of_birth">

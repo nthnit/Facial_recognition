@@ -3,33 +3,59 @@ from sqlalchemy.orm import Session
 from database.mysql import get_db
 from models.user import User
 from models.class_model import Class
-from schemas.teacher_schema import TeacherCreate, TeacherUpdate, TeacherResponse, ClassResponse
+from schemas.teacher_schema import TeacherCreate, TeacherUpdate, TeacherResponse
+from schemas.class_schema import ClassResponse
 from typing import List
 from utils.security import hash_password
+from routes.user import get_current_user  # ✅ Import xác thực user
 
 router = APIRouter()
 
-# 📌 **1. API: Lấy danh sách giáo viên**
+# 📌 **1. API: Lấy danh sách giáo viên (Chỉ Manager hoặc Admin có quyền)**
 @router.get("/", response_model=List[TeacherResponse])
-def get_teachers(db: Session = Depends(get_db)):
+def get_teachers(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập danh sách giáo viên")
+
     teachers = db.query(User).filter(User.role == "teacher").all()
     return teachers
 
-# 📌 **2. API: Lấy thông tin giáo viên theo ID**
+# 📌 **2. API: Lấy thông tin giáo viên theo ID (Chỉ Manager hoặc Admin có quyền)**
 @router.get("/{teacher_id}", response_model=TeacherResponse)
-def get_teacher(teacher_id: int, db: Session = Depends(get_db)):
+def get_teacher(
+    teacher_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem thông tin giáo viên")
+
     teacher = db.query(User).filter(User.id == teacher_id, User.role == "teacher").first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
+
     return teacher
 
-# 📌 **3. API: Thêm mới giáo viên**
+# 📌 **3. API: Thêm mới giáo viên (Admin và Manager đều có quyền)**
 @router.post("/create", response_model=TeacherResponse)
-def create_teacher(teacher_data: TeacherCreate, db: Session = Depends(get_db)):
-    # Kiểm tra xem email đã tồn tại chưa
+def create_teacher(
+    teacher_data: TeacherCreate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền thêm giáo viên")
+
+    # Kiểm tra email đã tồn tại chưa
     existing_teacher = db.query(User).filter(User.email == teacher_data.email).first()
     if existing_teacher:
         raise HTTPException(status_code=400, detail="Email already exists")
+
+    # ✅ Đảm bảo date_of_birth không bị NULL
+    date_of_birth = teacher_data.date_of_birth if teacher_data.date_of_birth else "2000-01-01"
 
     # Mật khẩu mặc định khi tạo tài khoản giáo viên
     default_password = "Teacher123!"
@@ -41,7 +67,7 @@ def create_teacher(teacher_data: TeacherCreate, db: Session = Depends(get_db)):
         password=hashed_password,
         phone_number=teacher_data.phone_number,
         role="teacher",
-        date_of_birth=teacher_data.date_of_birth
+        date_of_birth=date_of_birth  # ✅ Gán giá trị mặc định nếu NULL
     )
 
     db.add(new_teacher)
@@ -50,9 +76,18 @@ def create_teacher(teacher_data: TeacherCreate, db: Session = Depends(get_db)):
     
     return new_teacher
 
-# 📌 **4. API: Cập nhật thông tin giáo viên**
+
+# 📌 **4. API: Cập nhật thông tin giáo viên (Admin và Manager đều có quyền)**
 @router.put("/{teacher_id}", response_model=TeacherResponse)
-def update_teacher(teacher_id: int, teacher_data: TeacherUpdate, db: Session = Depends(get_db)):
+def update_teacher(
+    teacher_id: int, 
+    teacher_data: TeacherUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager"]:  # ✅ Cho phép cả Admin & Manager
+        raise HTTPException(status_code=403, detail="Bạn không có quyền chỉnh sửa thông tin giáo viên")
+
     teacher = db.query(User).filter(User.id == teacher_id, User.role == "teacher").first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
@@ -66,9 +101,16 @@ def update_teacher(teacher_id: int, teacher_data: TeacherUpdate, db: Session = D
 
     return teacher
 
-# 📌 **5. API: Xóa giáo viên**
+# 📌 **5. API: Xóa giáo viên (Admin và Manager đều có quyền)**
 @router.delete("/{teacher_id}")
-def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
+def delete_teacher(
+    teacher_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager"]:  # ✅ Cho phép cả Admin & Manager
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xóa giáo viên")
+
     teacher = db.query(User).filter(User.id == teacher_id, User.role == "teacher").first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
@@ -80,7 +122,14 @@ def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
 
 # 📌 **6. API: Lấy danh sách lớp học mà giáo viên đang giảng dạy**
 @router.get("/{teacher_id}/classes", response_model=List[ClassResponse])
-def get_teacher_classes(teacher_id: int, db: Session = Depends(get_db)):
+def get_teacher_classes(
+    teacher_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager", "teacher"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem danh sách lớp của giáo viên")
+
     teacher = db.query(User).filter(User.id == teacher_id, User.role == "teacher").first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")

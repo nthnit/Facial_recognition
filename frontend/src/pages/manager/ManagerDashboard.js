@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Card, Col, Row, Typography } from "antd";
+import { Card, Col, Row, Typography, message } from "antd";
 import { UserOutlined, BookOutlined, SolutionOutlined, ReadOutlined } from "@ant-design/icons";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const { Title } = Typography;
 
@@ -13,18 +14,45 @@ const ManagerDashboard = () => {
         news: 0,
     });
 
+    const navigate = useNavigate(); // Điều hướng khi token hết hạn
+
+    // Hàm lấy token từ localStorage và tạo headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            message.error("Bạn chưa đăng nhập!");
+            navigate("/login"); // Điều hướng về trang login nếu không có token
+        }
+        return { Authorization: `Bearer ${token}` };
+    };
+
     useEffect(() => {
         // Gọi API để lấy dữ liệu tổng quan
         const fetchStats = async () => {
             try {
-                const response = await axios.get("http://127.0.0.1:8000/manager/stats");
+                const response = await axios.get("http://127.0.0.1:8000/manager/stats", {
+                    headers: getAuthHeaders()
+                });
                 setStats(response.data);
             } catch (error) {
-                console.error("Lỗi khi tải dữ liệu tổng quan:", error);
+                handleRequestError(error, "Lỗi khi tải dữ liệu tổng quan");
             }
         };
+
         fetchStats();
     }, []);
+
+    const handleRequestError = (error, defaultMessage) => {
+        if (error.response?.status === 401) {
+            message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+            localStorage.removeItem("token"); // Xóa token khi hết hạn
+            navigate("/login");
+        } else if (error.response?.status === 403) {
+            message.error("Bạn không có quyền xem thống kê!");
+        } else {
+            message.error(defaultMessage);
+        }
+    };
 
     return (
         <div style={styles.container}>

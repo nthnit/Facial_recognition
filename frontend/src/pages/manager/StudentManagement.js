@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
-import * as XLSX from "xlsx"; // 📌 Import thư viện XLSX
+import * as XLSX from "xlsx"; 
 import { useNavigate } from "react-router-dom";
 
 const { Title } = Typography;
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([]);
+    const [filteredStudents, setFilteredStudents] = useState([]);
+    const [searchText, setSearchText] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [loading, setLoading] = useState(false);
     const [form] = Form.useForm();
-    const [messageApi, contextHolder] = message.useMessage();
     const navigate = useNavigate();
+
+    // Lấy token từ localStorage để gửi trong request
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            message.error("Bạn chưa đăng nhập!");
+            navigate("/login");
+            return {};
+        }
+        return { Authorization: `Bearer ${token}` };
+    };
 
     useEffect(() => {
         fetchStudents();
@@ -25,38 +37,44 @@ const StudentManagement = () => {
     const fetchStudents = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/students");
+            const response = await axios.get("http://127.0.0.1:8000/students", {
+                headers: getAuthHeaders(),
+            });
             setStudents(response.data);
+            setFilteredStudents(response.data);
         } catch (error) {
-            messageApi.error("Lỗi khi tải danh sách học sinh.");
+            handleRequestError(error, "Lỗi khi tải danh sách học sinh.");
         }
         setLoading(false);
     };
 
-    // 🔹 Xuất danh sách học sinh ra file Excel
-    const exportToExcel = () => {
-        if (students.length === 0) {
-            messageApi.warning("Không có dữ liệu để xuất.");
-            return;
+    // 🔹 Xử lý lỗi API
+    const handleRequestError = (error, defaultMessage) => {
+        if (error.response?.status === 401) {
+            message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+            localStorage.removeItem("token");
+            navigate("/login");
+        } else if (error.response?.status === 403) {
+            message.error("Bạn không có quyền thực hiện thao tác này!");
+        } else {
+            message.error(defaultMessage);
         }
+    };
 
-        const dataToExport = students.map((student) => ({
-            "Mã sinh viên": student.id,
-            "Họ và Tên": student.full_name,
-            "Email": student.email,
-            "Số điện thoại": student.phone_number,
-            "Địa chỉ": student.address,
-            "Ngày sinh": student.date_of_birth ? moment(student.date_of_birth).format("DD-MM-YYYY") : "N/A",
-            "Năm nhập học": student.admission_year,
-            "Trạng thái": student.status,
-        }));
+    // 🔹 Chức năng tìm kiếm học sinh
+    const handleSearch = (e) => {
+        const value = e.target.value.toLowerCase();
+        setSearchText(value);
+        
+        const filtered = students.filter(
+            (student) =>
+                student.id.toString().includes(value) ||
+                student.full_name.toLowerCase().includes(value) ||
+                student.email.toLowerCase().includes(value) ||
+                student.phone_number.includes(value)
+        );
 
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách học sinh");
-
-        XLSX.writeFile(workbook, "DanhSachHocSinh.xlsx");
-        messageApi.success("Xuất danh sách học sinh thành công!");
+        setFilteredStudents(filtered);
     };
 
     // 🔹 Hiển thị modal thêm/sửa học sinh
@@ -79,35 +97,65 @@ const StudentManagement = () => {
                 date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : null,
                 admission_year: values.admission_year || new Date().getFullYear(),
                 status: values.status || "active",
-                image: values.image || null,
             };
 
             if (editingStudent) {
-                await axios.put(`http://127.0.0.1:8000/students/${editingStudent.id}`, payload);
-                messageApi.success("Cập nhật học sinh thành công!");
+                await axios.put(`http://127.0.0.1:8000/students/${editingStudent.id}`, payload, {
+                    headers: getAuthHeaders(),
+                });
+                message.success("Cập nhật học sinh thành công!");
             } else {
-                await axios.post("http://127.0.0.1:8000/students", payload);
-                messageApi.success("Thêm học sinh thành công!");
+                await axios.post("http://127.0.0.1:8000/students", payload, {
+                    headers: getAuthHeaders(),
+                });
+                message.success("Thêm học sinh thành công!");
             }
 
             fetchStudents();
             setIsModalOpen(false);
             form.resetFields();
         } catch (error) {
-            console.error("Lỗi khi lưu học sinh:", error);
-            messageApi.error("Lỗi khi lưu học sinh.");
+            handleRequestError(error, "Lỗi khi lưu học sinh.");
         }
     };
 
     // 🔹 Xử lý xoá học sinh
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`http://127.0.0.1:8000/students/${id}`);
-            messageApi.success("Xóa học sinh thành công!");
+            await axios.delete(`http://127.0.0.1:8000/students/${id}`, {
+                headers: getAuthHeaders(),
+            });
+            message.success("Xóa học sinh thành công!");
             fetchStudents();
         } catch (error) {
-            messageApi.error("Lỗi khi xóa học sinh.");
+            handleRequestError(error, "Lỗi khi xóa học sinh.");
         }
+    };
+
+    // 🔹 Xuất danh sách học sinh ra file Excel
+    const exportToExcel = () => {
+        if (students.length === 0) {
+            message.warning("Không có dữ liệu để xuất.");
+            return;
+        }
+
+        const dataToExport = students.map((student) => ({
+            "Mã sinh viên": student.id,
+            "Họ và Tên": student.full_name,
+            "Email": student.email,
+            "Số điện thoại": student.phone_number,
+            "Địa chỉ": student.address,
+            "Ngày sinh": student.date_of_birth ? moment(student.date_of_birth).format("DD-MM-YYYY") : "N/A",
+            "Năm nhập học": student.admission_year,
+            "Trạng thái": student.status,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách học sinh");
+
+        XLSX.writeFile(workbook, "DanhSachHocSinh.xlsx");
+        message.success("Xuất danh sách học sinh thành công!");
     };
 
     // 🔹 Cấu hình cột của bảng danh sách học sinh
@@ -120,7 +168,7 @@ const StudentManagement = () => {
                 <Typography.Link onClick={() => navigate(`/manager/students/${id}`)}>
                     {id}
                 </Typography.Link>
-            ), // ✅ Nhấp vào ID để xem chi tiết
+            ),
         },
         { title: "Họ và Tên", dataIndex: "full_name", key: "full_name" },
         { title: "Email", dataIndex: "email", key: "email" },
@@ -153,9 +201,9 @@ const StudentManagement = () => {
 
     return (
         <div style={{ padding: 20 }}>
-            {contextHolder} {/* Đặt contextHolder để message hoạt động */}
             <Title level={2}>Quản lý học sinh</Title>
             <Space style={{ marginBottom: 20 }}>
+                <Input placeholder="Tìm kiếm học sinh..." prefix={<SearchOutlined />} onChange={handleSearch} allowClear />
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
                     Thêm học sinh
                 </Button>
@@ -163,27 +211,7 @@ const StudentManagement = () => {
                     Xuất Excel
                 </Button>
             </Space>
-            <Table columns={columns} dataSource={students} loading={loading} rowKey="id" />
-
-            <Modal title={editingStudent ? "Chỉnh sửa học sinh" : "Thêm học sinh"} open={isModalOpen} onOk={handleOk} onCancel={() => setIsModalOpen(false)}>
-                <Form form={form} layout="vertical">
-                    <Form.Item label="Họ và Tên" name="full_name" rules={[{ required: true, message: "Vui lòng nhập họ tên!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Email" name="email" rules={[{ required: true, type: "email", message: "Email không hợp lệ!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Số điện thoại" name="phone_number" rules={[{ required: true, message: "Vui lòng nhập số điện thoại!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Địa chỉ" name="address" rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Ngày sinh" name="date_of_birth">
-                        <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
-                    </Form.Item>
-                </Form>
-            </Modal>
+            <Table columns={columns} dataSource={filteredStudents} loading={loading} rowKey="id" />
         </div>
     );
 };

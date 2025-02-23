@@ -41,7 +41,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
     const isAllowed =
         allowedRoles.includes(userRole) &&
         (roleRoutes[userRole]?.includes(location.pathname) ||
-         (userRole === "manager" && location.pathname.startsWith("/manager/students/")));
+         (userRole === "manager" && (location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/"))));
 
     if (!isAllowed) {
         console.warn("🚨 Không có quyền truy cập vào:", location.pathname);

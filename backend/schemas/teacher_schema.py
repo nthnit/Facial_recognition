@@ -22,4 +22,4 @@ class TeacherResponse(BaseModel):
     date_of_birth: Optional[date] = None
 
     class Config:
-        from_attributes = True  # Hỗ trợ chuyển đổi từ SQLAlchemy Model
+        from_attributes = True

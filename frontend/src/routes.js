@@ -8,6 +8,8 @@ import NotFound from "./pages/common/NotFound";
 
 // general routes
 import StudentDetail from "./pages/StudentDetail";
+import ClassDetail from "./pages/ClassDetail"; // ✅ Import trang thông tin chi tiết lớp học
+
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
 import BannerManagement from "./pages/admin/BannerManagement";
@@ -50,15 +52,13 @@ const AppRoutes = () => {
                         <Route path="manager/profile" element={<Profile />} />
                         <Route path="manager/teachers" element={<TeacherManagement />} />
                         <Route path="manager/students/:id" element={<StudentDetail />} />
+                        <Route path="manager/classes/:id" element={<ClassDetail />} /> {/* ✅ Thêm route chi tiết lớp học */}
 
                         {/* 📌 Routes cho Giảng viên */}
                         <Route path="teacher/dashboard" element={<TeacherDashboard />} />
                         <Route path="teacher/schedule" element={<TeachingSchedule />} />
                         <Route path="teacher/classes" element={<MyClasses />} />
                         <Route path="teacher/profile" element={<Profile />} />
-
-
-                        
 
                     </Route>
                 </Route>

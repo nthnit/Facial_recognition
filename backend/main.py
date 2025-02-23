@@ -1,17 +1,15 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from routes import router  # Import tất cả các routes
+from routes import router
+from middleware.auth_middleware import AuthMiddleware
+from middleware.cors_middleware import CORSMiddleware  # ✅ Import middleware CORS mới
 
 app = FastAPI()
 
-# Cấu hình CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Cho phép frontend React truy cập
-    allow_credentials=True,
-    allow_methods=["*"],  # Cho phép tất cả các phương thức (GET, POST, PUT, DELETE)
-    allow_headers=["*"],  # Cho phép tất cả các headers
-)
+# ✅ Đảm bảo CORS Middleware đứng đầu tiên
+app.add_middleware(CORSMiddleware)
 
-# Thêm các router vào ứng dụng
+# ✅ Thêm Middleware xác thực (AuthMiddleware)
+app.add_middleware(AuthMiddleware)
+
+# ✅ Thêm router vào ứng dụng
 app.include_router(router)

@@ -2,35 +2,52 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database.mysql import get_db
 from models.student_model import Student
+from models.user import User
 from schemas.student_schema import StudentCreate, StudentUpdate, StudentResponse
 from typing import List
+from routes.user import get_current_user  # Import xác thực user
 
 router = APIRouter()
 
-# 🟢 API GET: Lấy danh sách Student
+# 🟢 API GET: Lấy danh sách Student (chỉ Manager mới có quyền)
 @router.get("/", response_model=List[StudentResponse])
-def get_students(db: Session = Depends(get_db)):
+def get_students(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ✅ Yêu cầu xác thực
+):
+    if current_user.role != "manager":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem danh sách học sinh")
+
     students = db.query(Student).all()
     return students
 
 # 🔵 API GET: Lấy thông tin Student theo ID
 @router.get("/{student_id}", response_model=StudentResponse)
-def get_student(student_id: int, db: Session = Depends(get_db)):
+def get_student(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ✅ Yêu cầu xác thực
+):
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+    
     return student
 
-# 🟡 API POST: Thêm Student mới
-# API POST: Thêm học sinh mới
+# 🟡 API POST: Thêm học sinh mới (chỉ Manager có quyền)
 @router.post("/", response_model=StudentResponse)
-def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
-    # Kiểm tra email đã tồn tại chưa
+def create_student(
+    student_data: StudentCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ✅ Yêu cầu xác thực
+):
+    if current_user.role != "manager":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền thêm học sinh")
+
     existing_student = db.query(Student).filter(Student.email == student_data.email).first()
     if existing_student:
         raise HTTPException(status_code=400, detail="Email đã tồn tại")
 
-    # Nếu date_of_birth là None, đặt một ngày mặc định
     date_of_birth = student_data.date_of_birth if student_data.date_of_birth else "2000-01-01"
 
     new_student = Student(
@@ -38,7 +55,7 @@ def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
         email=student_data.email,
         phone_number=student_data.phone_number,
         address=student_data.address,
-        date_of_birth=date_of_birth,  # Gán ngày mặc định nếu NULL
+        date_of_birth=date_of_birth,
         admission_year=student_data.admission_year if student_data.admission_year else 2024,
         status=student_data.status,
         image=student_data.image
@@ -50,9 +67,17 @@ def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
     
     return new_student
 
-# 🟠 API PUT: Cập nhật thông tin Student theo ID
+# 🟠 API PUT: Cập nhật thông tin học sinh (chỉ Manager có quyền)
 @router.put("/{student_id}", response_model=StudentResponse)
-def update_student(student_id: int, student_data: StudentUpdate, db: Session = Depends(get_db)):
+def update_student(
+    student_id: int,
+    student_data: StudentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ✅ Yêu cầu xác thực
+):
+    if current_user.role != "manager":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền chỉnh sửa thông tin học sinh")
+
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -64,9 +89,16 @@ def update_student(student_id: int, student_data: StudentUpdate, db: Session = D
     db.refresh(student)
     return student
 
-# 🔴 API DELETE: Xóa Student theo ID
+# 🔴 API DELETE: Xóa học sinh (chỉ Manager có quyền)
 @router.delete("/{student_id}")
-def delete_student(student_id: int, db: Session = Depends(get_db)):
+def delete_student(
+    student_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ✅ Yêu cầu xác thực
+):
+    if current_user.role != "manager":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xóa học sinh")
+
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")

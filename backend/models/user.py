@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Date, Text
 from sqlalchemy.orm import relationship
 from database.mysql import Base
 
@@ -12,7 +12,12 @@ class User(Base):
     phone_number = Column(String(20), nullable=False)
     role = Column(Enum("admin", "manager", "teacher"), nullable=False)
     date_of_birth = Column(Date, nullable=True)
-    access_token = Column(String(500), nullable=True)  # Thêm access_token vào model
+    access_token = Column(Text, nullable=True)   # 🔹 Lưu Access Token
+    refresh_token = Column(Text, nullable=True)  # 🔹 Lưu Refresh Token
 
     # Liên kết với bảng news (một người dùng có thể có nhiều bài viết)
     news = relationship("News", back_populates="author")
+    
+    # ✅ Thêm mối quan hệ với bảng classes
+    classes = relationship("Class", back_populates="teacher")
+

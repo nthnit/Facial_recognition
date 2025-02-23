@@ -16,10 +16,15 @@ class Class(Base):
     id = Column(Integer, primary_key=True, index=True)
     class_code = Column(String(20), unique=True, nullable=False)  # Mã lớp
     name = Column(String(255), nullable=False)  # Tên lớp
+    teacher_id = Column(Integer, ForeignKey("users.id"))  # Giảng viên dạy lớp
     start_date = Column(Date, nullable=False)  # Ngày bắt đầu
     end_date = Column(Date, nullable=False)  # Ngày kết thúc
-    total_sessions = Column(Integer, nullable=False, default=15)  # Tổng số buổi
+    total_sessions = Column(Integer, nullable=False, default=15)  # Tổng số buổi học
     subject = Column(String(255), nullable=False)  # Môn học
+    status = Column(String(50), nullable=False, default="active")  # Trạng thái lớp
 
     # Mối quan hệ với bảng Student qua bảng trung gian
     students = relationship("Student", secondary=class_student_association, back_populates="classes")
+    teacher = relationship("User", back_populates="classes")  # Mối quan hệ với giáo viên
+
+
