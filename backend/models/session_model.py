@@ -1,0 +1,18 @@
+from sqlalchemy import Column, Integer, Date, Time, ForeignKey
+from sqlalchemy.orm import relationship
+from database.mysql import Base
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    date = Column(Date, nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+
+    # Quan hệ với lớp học
+    class_obj = relationship("Class", back_populates="sessions")
+    
+    # Quan hệ với bảng Attendance
+    attendances = relationship("Attendance", back_populates="session", cascade="all, delete-orphan")

@@ -11,12 +11,12 @@ from schemas.class_schema import ClassCreate, ClassUpdate, ClassResponse
 from schemas.student_schema import StudentResponse
 from schemas.session_schema import SessionResponse
 from schemas.attendance_schema import AttendanceCreate, AttendanceResponse
-
+from models.session_model import Session as SessionModel
 from typing import List
 import pandas as pd
 from fastapi.responses import FileResponse
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time, date
 from routes.user import get_current_user  # ✅ Import xác thực user
 
 router = APIRouter()
@@ -113,27 +113,29 @@ def create_class(
     current_user: User = Depends(get_current_user)
 ):
     print("Received payload:", class_data.dict())
+
     if current_user.role not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền thêm lớp học")
 
-    # Tính toán số buổi học (sessions)
+    # Tính toán ngày kết thúc dựa trên số buổi học
     start_date = class_data.start_date
     total_sessions = class_data.total_sessions
     weekly_schedule = class_data.weekly_schedule  # Danh sách các thứ học trong tuần, ví dụ: [0, 2, 4]
-    
-    # Tính toán ngày kết thúc (end_date)
+
     current_date = start_date
     sessions_count = 0
+    session_dates = []
 
     while sessions_count < total_sessions:
-        if current_date.weekday() in weekly_schedule:  # Kiểm tra xem ngày hiện tại có trong lịch học không
+        if current_date.weekday() in weekly_schedule:  # Nếu ngày hiện tại thuộc lịch học
+            session_dates.append(current_date)  # Lưu lại ngày của session
             sessions_count += 1
         current_date += timedelta(days=1)
 
-    end_date = current_date - timedelta(days=1)  # Đặt end_date là ngày cuối cùng của buổi học
+    end_date = session_dates[-1] if session_dates else start_date  # Ngày kết thúc là ngày học cuối cùng
 
-    # Tạo mã lớp học tự động "CLASS{id}"
-    new_class_code = f"CLASS{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"  # Tạo mã lớp tự động theo thời gian
+    # Tạo mã lớp học tự động
+    new_class_code = f"CLASS{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
     # Tạo lớp học mới
     new_class = Class(
@@ -145,12 +147,30 @@ def create_class(
         subject=class_data.subject,
         status=class_data.status,
         class_code=new_class_code,
-        weekly_schedule=",".join(map(str, weekly_schedule))  # Lưu danh sách các thứ học vào bảng dưới dạng chuỗi
+        weekly_schedule=",".join(map(str, weekly_schedule))
     )
 
     db.add(new_class)
     db.commit()
     db.refresh(new_class)
+
+    # 🔹 Tạo sessions tự động
+    session_objects = []
+    default_start_time = time(8, 0)  # Giờ bắt đầu mặc định: 08:00 AM
+    default_end_time = time(10, 0)  # Giờ kết thúc mặc định: 10:00 AM
+
+    for session_date in session_dates:
+        session_obj = SessionModel(
+            class_id=new_class.id,
+            date=session_date,
+            start_time=default_start_time,
+            end_time=default_end_time
+        )
+        session_objects.append(session_obj)
+
+    # Lưu sessions vào database
+    db.add_all(session_objects)
+    db.commit()
 
     return ClassResponse(
         id=new_class.id,
@@ -162,10 +182,12 @@ def create_class(
         subject=new_class.subject,
         status=new_class.status,
         class_code=new_class.class_code,
-        weekly_schedule=[int(day) for day in new_class.weekly_schedule.split(",")]  # ✅ Chuyển chuỗi thành List[int]
+        weekly_schedule=[int(day) for day in new_class.weekly_schedule.split(",")]
     )
 
 # 🟢 API CẬP NHẬT THÔNG TIN LỚP HỌC
+
+
 @router.put("/{class_id}", response_model=ClassResponse)
 def update_class(
     class_id: int,
@@ -191,26 +213,43 @@ def update_class(
     if "weekly_schedule" in update_data:
         class_obj.weekly_schedule = ",".join(map(str, update_data["weekly_schedule"]))
 
-    # Nếu `start_date`, `total_sessions`, hoặc `weekly_schedule` thay đổi → tính lại `end_date`
+    # Nếu `start_date`, `total_sessions`, hoặc `weekly_schedule` thay đổi → tính lại `end_date` và cập nhật sessions
     if "start_date" in update_data or "total_sessions" in update_data or "weekly_schedule" in update_data:
         start_date = class_obj.start_date
         total_sessions = class_obj.total_sessions
-
-        # Chuyển đổi `weekly_schedule` thành danh sách số nguyên
         weekly_schedule = [int(day) for day in class_obj.weekly_schedule.split(",")]
 
-        # Tính toán lại `end_date`
+        # 🔹 Xóa tất cả sessions hiện tại của lớp này trước khi tạo lại
+        existing_sessions = db.query(SessionModel).filter(SessionModel.class_id == class_id).all()
+        for session in existing_sessions:
+            db.delete(session)
+        db.commit()  # Commit để xóa hoàn toàn sessions trước khi thêm mới
+
+        # 🔹 Tạo lại danh sách sessions mới
         current_date = start_date
         sessions_count = 0
+        session_list = []
 
         while sessions_count < total_sessions:
             if current_date.weekday() in weekly_schedule:
+                new_session = SessionModel(
+                    class_id=class_id,
+                    date=current_date,
+                    start_time="19:30",  # 🔹 Có thể sửa giờ học theo yêu cầu
+                    end_time="21:30"
+                )
+                session_list.append(new_session)
                 sessions_count += 1
             current_date += timedelta(days=1)
 
-        class_obj.end_date = current_date - timedelta(days=1)  # Ngày cuối cùng của buổi học
+        # 🔹 Lưu các sessions mới vào database
+        db.add_all(session_list)
 
-    # Lưu thay đổi vào database
+        # 🔹 Cập nhật `end_date` dựa trên session cuối cùng
+        if session_list:
+            class_obj.end_date = session_list[-1].date
+
+    # 🔹 Lưu thay đổi vào database
     db.commit()
     db.refresh(class_obj)
 
@@ -227,6 +266,7 @@ def update_class(
         class_code=class_obj.class_code,
         weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")]  # ✅ Chuyển chuỗi thành List[int]
     )
+
 
 
 
@@ -346,97 +386,110 @@ def enroll_student(
 def get_class_sessions(
     class_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     if current_user.role not in ["admin", "manager", "teacher"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem danh sách buổi học")
 
-    # 🔹 Lấy thông tin lớp học
+    # Kiểm tra lớp học có tồn tại không
     class_obj = db.query(Class).filter(Class.id == class_id).first()
     if not class_obj:
         raise HTTPException(status_code=404, detail="Lớp học không tồn tại")
 
-    # 🔹 Giải mã weekly_schedule
-    weekly_schedule = [int(day) for day in class_obj.weekly_schedule.split(",")] if class_obj.weekly_schedule else []
-    
-    # 🔹 Tạo danh sách buổi học
-    current_date = class_obj.start_date
-    sessions = []
-    session_count = 0
+    # Truy vấn danh sách sessions từ bảng `sessions`
+    sessions = (
+        db.query(SessionModel)
+        .filter(SessionModel.class_id == class_id)
+        .order_by(SessionModel.date)
+        .all()
+    )
 
-    while session_count < class_obj.total_sessions and current_date <= class_obj.end_date:
-        if current_date.weekday() in weekly_schedule:
-            # 🔹 Lấy danh sách học sinh của lớp
-            students = (
-                db.query(Student)
-                .join(ClassStudent, Student.id == ClassStudent.student_id)
-                .filter(ClassStudent.class_id == class_id)
-                .all()
-            )
+    session_list = []
+    for index, session in enumerate(sessions, start=1):
+        # Lấy danh sách học sinh của lớp
+        students = (
+            db.query(Student)
+            .join(ClassStudent, Student.id == ClassStudent.student_id)
+            .filter(ClassStudent.class_id == class_id)
+            .all()
+        )
 
-            # 🔹 Lấy danh sách điểm danh của buổi học
-            attendance_records = (
-                db.query(Attendance)
-                .filter(Attendance.class_id == class_id, Attendance.session_date == current_date)
-                .all()
-            )
+        # Lấy danh sách điểm danh của buổi học
+        attendance_records = (
+            db.query(Attendance)
+            .filter(Attendance.session_id == session.id)
+            .all()
+        )
 
-            # 🔹 Tính tỉ lệ điểm danh
-            attendance_rate = (
-                len([a for a in attendance_records if a.status == "Present"]) / len(students)
-                if students else 0
-            )
+        # Tính tỉ lệ điểm danh
+        attendance_rate = (
+            len([a for a in attendance_records if a.status == "Present"]) / len(students)
+            if students else 0
+        )
 
-            # 🔹 Thêm buổi học vào danh sách
-            sessions.append({
-                "session_number": session_count + 1,
-                "date": current_date,
-                "weekday": current_date.strftime("%A"),
-                "start_time": "19:30",  # 🔹 Cố định giờ học, có thể thay đổi theo lớp
-                "end_time": "21:30",
-                "total_students": len(students),
-                "attendance_rate": round(attendance_rate * 100, 2),
-                "students": [{"id": s.id, "full_name": s.full_name} for s in students],
-            })
-            session_count += 1
-        current_date += timedelta(days=1)
+        # Thêm session vào danh sách trả về (bao gồm `session_id`)
+        session_list.append({
+            "session_id": session.id,  # ✅ Thêm session_id vào response
+            "session_number": index,
+            "date": session.date,
+            "weekday": session.date.strftime("%A"),
+            "start_time": session.start_time.strftime("%H:%M"),
+            "end_time": session.end_time.strftime("%H:%M"),
+            "total_students": len(students),
+            "attendance_rate": round(attendance_rate * 100, 2),
+            "students": [{"id": s.id, "full_name": s.full_name} for s in students],
+        })
 
-    return sessions
+    return session_list
 
 
 # API: Cập nhật điểm danh cho một buổi học
 @router.post("/{class_id}/sessions/{session_date}/attendance")
 def update_attendance(
     class_id: int,
-    session_date: str,
+    session_date: date,
     attendance_data: List[AttendanceCreate],
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    if current_user.role not in ["admin","manager", "teacher"]:
+    if current_user.role not in ["admin", "manager", "teacher"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền cập nhật điểm danh.")
 
+    # 🔹 Kiểm tra xem lớp học có tồn tại không
     class_obj = db.query(Class).filter(Class.id == class_id).first()
     if not class_obj:
         raise HTTPException(status_code=404, detail="Lớp học không tồn tại.")
+
+    # 🔹 Tìm session dựa trên `class_id` và `session_date`
+    session = db.query(SessionModel).filter(
+        SessionModel.class_id == class_id,
+        SessionModel.date == session_date
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Buổi học không tồn tại.")
 
     for record in attendance_data:
         if record.class_id != class_id:
             raise HTTPException(status_code=400, detail="Dữ liệu không hợp lệ. class_id không khớp.")
 
+        # 🔹 Kiểm tra xem điểm danh đã tồn tại chưa
         existing_attendance = db.query(Attendance).filter(
             Attendance.class_id == class_id,
-            Attendance.session_date == session_date,
+            Attendance.session_id == session.id,
             Attendance.student_id == record.student_id
         ).first()
 
         if existing_attendance:
+            # 🔹 Cập nhật trạng thái điểm danh nếu đã tồn tại
             existing_attendance.status = record.status
         else:
+            # 🔹 Tạo bản ghi điểm danh mới nếu chưa tồn tại
             new_attendance = Attendance(
                 class_id=class_id,
-                session_date=session_date,
+                session_id=session.id,  # ✅ Liên kết session_id thay vì chỉ dùng ngày
                 student_id=record.student_id,
+                session_date=session_date,  # 🔹 Lưu lại ngày của buổi học
                 status=record.status
             )
             db.add(new_attendance)
@@ -465,3 +518,38 @@ def get_attendance_status(
         raise HTTPException(status_code=404, detail="Không tìm thấy dữ liệu điểm danh cho buổi học này.")
 
     return attendance_records
+
+# ✅ API LẤY ĐIỂM DANH CỦA MỘT LỚP HỌC
+@router.get("/{class_id}/attendance", response_model=List[AttendanceResponse])
+def get_class_attendance(class_id: int, db: Session = Depends(get_db)):
+    # 🔹 Lấy danh sách các session của lớp
+    sessions = db.query(SessionModel).filter(SessionModel.class_id == class_id).all()
+    if not sessions:
+        raise HTTPException(status_code=404, detail="Không có buổi học nào cho lớp này.")
+
+    # 🔹 Lấy danh sách điểm danh của lớp
+    attendance_records = (
+        db.query(Attendance)
+        .filter(Attendance.class_id == class_id)
+        .all()
+    )
+
+    # 🔹 Kiểm tra nếu không có dữ liệu điểm danh
+    if not attendance_records:
+        raise HTTPException(status_code=404, detail="Không có dữ liệu điểm danh cho lớp này.")
+
+    # 🔹 Chuyển đổi dữ liệu sang dạng danh sách
+    attendance_list = [
+        {
+            "id": att.id,
+            "class_id": att.class_id,
+            "session_id": att.session_id,
+            "student_id": att.student_id,
+            "session_date": att.session_date,
+            "status": att.status,
+        }
+        for att in attendance_records
+    ]
+
+    return attendance_list
+

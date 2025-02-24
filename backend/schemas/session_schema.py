@@ -7,6 +7,7 @@ class SessionStudent(BaseModel):
     full_name: str
 
 class SessionResponse(BaseModel):
+    session_id: int
     session_number: int
     date: date
     weekday: str

@@ -22,4 +22,6 @@ class Class(Base):
     # 🔹 Mối quan hệ với giáo viên
     teacher = relationship("User", back_populates="classes")
     
-    attendances = relationship("Attendance", back_populates="class_")
+    attendances = relationship("Attendance", back_populates="class_", cascade="all, delete-orphan")
+
+    sessions = relationship("Session", back_populates="class_obj", cascade="all, delete-orphan")

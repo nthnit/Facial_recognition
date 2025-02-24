@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch } from "antd";
+import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch } from "antd";
 import axios from "axios";
 import moment from "moment";
-
+import * as XLSX from "xlsx";
 const { TabPane } = Tabs;
 const { Option } = Select;
 
@@ -106,6 +106,7 @@ const ClassDetail = () => {
 
 
     const openAttendanceModal = async (session) => {
+        console.log("Opening attendance modal for session:", session); 
         setCurrentSession(session);
         
         try {
@@ -159,6 +160,7 @@ const ClassDetail = () => {
         try {
             const attendancePayload = Object.entries(attendanceData).map(([studentId, status]) => ({
                 class_id: Number(id),  // Đảm bảo class_id là số
+                session_id: currentSession.session_id,
                 student_id: Number(studentId),  // Đảm bảo student_id là số
                 status: status === "Present" ? "Present" : "Absent" ,
             }));
@@ -195,12 +197,96 @@ const ClassDetail = () => {
         }
     };
 
+    const exportAttendanceToExcel = async () => {
+        try {
+            const attendanceResponse = await axios.get(
+                `http://127.0.0.1:8000/classes/${id}/attendance`,
+                { headers: getAuthHeaders() }
+            );
 
+            const attendanceRecords = attendanceResponse.data;
+            if (!attendanceRecords.length) {
+                message.warning("Không có dữ liệu điểm danh để xuất.");
+                return;
+            }
+
+            // ✅ Tiêu đề file
+            const title = [["Attendance Register"]];
+            const classInfoHeader = [
+                ["Class Code:", classInfo.class_code],
+                ["Teacher:", classInfo.teacher_name],
+                ["From:", moment(classInfo.start_date).format("DD-MM-YYYY")],
+                ["To:", moment(classInfo.end_date).format("DD-MM-YYYY")],
+                ["Schedule:", classInfo.weekly_schedule.join(", ")],
+                ["Total Sessions:", classInfo.total_sessions]
+            ];
+
+            // ✅ Tiêu đề cột chính
+            const mainHeader = ["No", "Student Name", "Date of Birth", "Gender", "Join Date"];
+
+            // ✅ Tiêu đề các cột ngày học (Buổi số - Ngày)
+            const sessionHeaders = sessions.map((session, index) => ({
+                header: `S${index + 1} - ${moment(session.date).format("DD-MM-YYYY")}`,
+                date: session.date
+            }));
+
+            // ✅ Hoàn thiện hàng tiêu đề
+            const fullHeader = [...mainHeader, ...sessionHeaders.map(s => s.header), "Note"];
+
+            // ✅ Xây dựng dữ liệu học sinh
+            const studentRows = students.map((student, idx) => {
+                const row = [
+                    idx + 1, // STT
+                    student.full_name,
+                    moment(student.dob).format("DD-MM-YYYY"),
+                    student.gender,
+                    moment(student.join_date).format("DD-MM-YYYY") // Ngày vào lớp
+                ];
+
+                // ✅ Gán trạng thái điểm danh cho mỗi ngày học
+                sessionHeaders.forEach(session => {
+                    const attendance = attendanceRecords.find(
+                        att => att.student_id === student.id && att.session_date === session.date
+                    );
+                    row.push(attendance ? attendance.status : ""); // Present, Absent, Late, Excused
+                });
+
+                row.push(""); // Cột Note
+                return row;
+            });
+
+            // ✅ Gộp tất cả dữ liệu vào sheet
+            const worksheetData = [...title, [], ...classInfoHeader, [], fullHeader, ...studentRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
+
+            // ✅ Xuất file Excel
+            XLSX.writeFile(workbook, `Attendance_Class_${classInfo.class_code}.xlsx`);
+            message.success("Xuất file điểm danh thành công!");
+        } catch (error) {
+            console.error("Lỗi khi xuất file điểm danh:", error.response?.data || error);
+            message.error("Lỗi khi xuất file điểm danh.");
+        }
+    };
+
+    
 
     if (loading) return <p>Đang tải thông tin lớp học...</p>;
 
     return (
         <div style={{ padding: 20 }}>
+
+            {/* 🔹 Breadcrumb hoặc nút Back */}
+            <div style={{ marginBottom: 16 }}>
+                <Breadcrumb>
+                    <Breadcrumb.Item>
+                        <Link to="/manager/classes">Quản lý lớp học</Link>
+                    </Breadcrumb.Item>
+                    <Breadcrumb.Item>{classInfo.class_code}</Breadcrumb.Item>
+                </Breadcrumb>
+            </div>
+
             {classInfo ? (
                 <>
                     {/* Basic Info */}
@@ -216,8 +302,6 @@ const ClassDetail = () => {
                             <div style={{ flex: "1 1 45%" }}>
                                 <p><strong>Trạng thái:</strong> {classInfo.status}</p>
                                 <p><strong>Số lượng học sinh:</strong> {students.length}</p>
-                                {/* <p><strong>Ngày bắt đầu:</strong> {moment(classInfo.start_date).format("DD-MM-YYYY")}</p>
-                                <p><strong>Ngày kết thúc:</strong> {moment(classInfo.end_date).format("DD-MM-YYYY")}</p> */}
                             </div>
                         </div>
                     </Card>
@@ -239,9 +323,13 @@ const ClassDetail = () => {
 
                     <Tabs defaultActiveKey="1">
                         <TabPane tab="Danh sách buổi học" key="1">
+                            <Button type="primary" onClick={exportAttendanceToExcel} style={{ marginBottom: 16 }}>
+                                Xuất file điểm danh
+                            </Button>
                             <Table
                                 columns={[
-                                    { title: "Session", dataIndex: "session_number", key: "session_number" },
+                                    { title: "Buổi số", dataIndex: "session_number", key: "session_number" },
+                                    { title: "Mã buổi học", dataIndex: "session_id", key: "session_id" },
                                     { title: "Ngày học", dataIndex: "date", key: "date", render: (date) => moment(date).format("DD-MM-YYYY") },
                                     { title: "Thứ", dataIndex: "weekday", key: "weekday" },
                                     { title: "Giờ bắt đầu", dataIndex: "start_time", key: "start_time" },
