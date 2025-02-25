@@ -127,6 +127,7 @@ def get_teacher_classes(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
+    # Chỉ cho phép admin, manager hoặc chính giáo viên xem danh sách lớp học
     if current_user.role not in ["admin", "manager", "teacher"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem danh sách lớp của giáo viên")
 
@@ -134,4 +135,22 @@ def get_teacher_classes(
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
 
-    return teacher.classes  # Trả về danh sách lớp học mà giáo viên này dạy
+    # Lấy danh sách lớp mà giáo viên đang giảng dạy
+    classes = db.query(Class).filter(Class.teacher_id == teacher_id).all()
+
+    return [
+        ClassResponse(
+            id=class_obj.id,
+            class_code=class_obj.class_code,
+            name=class_obj.name,
+            teacher_id=class_obj.teacher_id,
+            teacher_name=teacher.full_name,
+            start_date=class_obj.start_date,
+            end_date=class_obj.end_date,
+            total_sessions=class_obj.total_sessions,
+            subject=class_obj.subject,
+            status=class_obj.status,
+            weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")] if class_obj.weekly_schedule else []
+        )
+        for class_obj in classes
+    ]

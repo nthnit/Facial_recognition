@@ -4,17 +4,24 @@ import AccessDenied from "../pages/common/AccessDenied";
 
 // Định nghĩa các routes hợp lệ cho từng role
 const roleRoutes = {
-    admin: ["/admin/users", "/admin/banner", "/admin/profile"],
+    admin: ["/admin/users", "/admin/banner", "/profile"],
     manager: [
         "/manager/dashboard",
         "/manager/students",
         "/manager/assign",
         "/manager/news",
         "/manager/classes",
-        "/manager/profile",
+        "/profile",
         "/manager/teachers"
     ],
-    teacher: ["/teacher/dashboard", "/teacher/classes", "/teacher/schedule", "/teacher/profile"]
+    teacher: [
+        "/teacher/dashboard", 
+        "/teacher/classes", 
+        "/teacher/schedule", 
+        "/profile", 
+        "/teacher/classes",  // Thêm quyền truy cập cho teacher vào chi tiết lớp
+        "/teacher/students" // Thêm quyền truy cập cho teacher vào chi tiết học sinh
+    ]
 };
 
 // Định nghĩa trang mặc định cho từng role
@@ -28,10 +35,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
     const location = useLocation();
     const userRole = localStorage.getItem("role");
 
-    console.log("🔍 User role:", userRole);
-    console.log("🔑 Allowed roles:", allowedRoles);
-    console.log("🌍 Đường dẫn hiện tại:", location.pathname);
-
     // Nếu chưa đăng nhập, chuyển hướng về trang login
     if (!userRole) {
         return <Navigate to="/login" replace />;
@@ -41,7 +44,8 @@ const ProtectedRoute = ({ allowedRoles }) => {
     const isAllowed =
         allowedRoles.includes(userRole) &&
         (roleRoutes[userRole]?.includes(location.pathname) ||
-         (userRole === "manager" && (location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/"))));
+         (userRole === "manager" && (location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/"))) ||
+         (userRole === "teacher" && (location.pathname.startsWith("/teacher/students/") || location.pathname.startsWith("/teacher/classes/"))));
 
     if (!isAllowed) {
         console.warn("🚨 Không có quyền truy cập vào:", location.pathname);

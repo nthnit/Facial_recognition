@@ -11,7 +11,7 @@ class StudentCreate(BaseModel):
     date_of_birth: Optional[date] = None
     admission_year: Optional[int] = None  # Để None nếu không có
     status: Optional[str] = "active"
-    image: Optional[str] = None
+    image_url: Optional[str] = None
 
 # Schema để cập nhật sinh viên
 class StudentUpdate(BaseModel):
@@ -22,7 +22,7 @@ class StudentUpdate(BaseModel):
     date_of_birth: Optional[date] = None
     admission_year: Optional[int] = None
     status: Optional[str] = None
-    image: Optional[str] = None
+    image_url: Optional[str] = None
 
 # Schema để trả về thông tin sinh viên
 class StudentResponse(BaseModel):

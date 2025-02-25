@@ -72,7 +72,7 @@ def get_class_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in ["admin", "manager"]:
+    if current_user.role not in ["admin", "manager", "teacher"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem chi tiết lớp học")
 
     class_obj = (

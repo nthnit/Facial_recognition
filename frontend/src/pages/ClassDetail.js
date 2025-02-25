@@ -356,7 +356,7 @@ const ClassDetail = () => {
                             <Table
                                 columns={[
                                     { title: "Mã học sinh", dataIndex: "id", key: "id" },
-                                    { title: "Họ và Tên", dataIndex: "full_name", key: "name", render: (text, record) => <Link to={`/students/${record.id}`}>{text}</Link> },
+                                    { title: "Họ và Tên", dataIndex: "full_name", key: "name", render: (text, record) => <Link to={`/manager/students/${record.id}`}>{text}</Link> },
                                     { title: "Ngày sinh", dataIndex: "dob", key: "dob", render: (dob) => moment(dob).format("DD-MM-YYYY") },
                                     { title: "Email", dataIndex: "email", key: "email" },
                                     { title: "Số điện thoại", dataIndex: "phone_number", key: "phone" },

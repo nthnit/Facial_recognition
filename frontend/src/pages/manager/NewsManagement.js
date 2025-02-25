@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload } from "antd";
+import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload, Card, Typography } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
 
 const { TextArea } = Input;
+const { Title, Text } = Typography;
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -170,33 +171,69 @@ const NewsManagement = () => {
     };
 
     return (
-        <div style={{ padding: 20 }}>
-            <h2>Quản lý Tin tức</h2>
-            <Space style={{ marginBottom: 16 }}>
+        <div style={{ padding: "20px" }}>
+            <Title level={2} style={{ marginBottom: "20px", textAlign: "center" }}>
+                Quản lý Tin tức
+            </Title>
+
+            {/* Search and Add New News */}
+            <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
                 <Input
                     placeholder="Tìm kiếm tin tức..."
                     prefix={<SearchOutlined />}
                     onChange={handleSearch}
                     allowClear
+                    style={{ width: "60%" }}
                 />
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
                     Đăng tin
                 </Button>
             </Space>
+
+            {/* News List */}
             <List
-                style={{ marginTop: 20 }}
+                style={{ marginTop: "20px" }}
                 loading={loading}
-                header={<h3>Danh sách tin tức</h3>}
-                bordered
-                dataSource={paginatedNews}
+                dataSource={filteredNews}
+                pagination={{
+                    current: currentPage,
+                    pageSize: pageSize,
+                    total: filteredNews.length,
+                    onChange: (page, size) => {
+                        setCurrentPage(page);
+                        setPageSize(size);
+                    },
+                    showSizeChanger: true,
+                    pageSizeOptions: ["5", "10", "15", "20"],
+                    style: { marginBottom: "20px" },
+                }}
                 renderItem={(item) => (
-                    <List.Item
+                    <Card
+                        style={{ marginBottom: "10px" }}
+                        hoverable
                         actions={[
-                            <Button icon={<EditOutlined />} onClick={() => showModal(item)}>Sửa</Button>,
-                            <Button icon={<DeleteOutlined />} danger onClick={() => handleDeleteNews(item.id)}>Xóa</Button>
+                            <Button
+                                type="link"
+                                icon={<EditOutlined />}
+                                onClick={() => {
+                                    setEditingNews(item);
+                                    form.setFieldsValue(item);
+                                    setIsModalOpen(true);
+                                }}
+                            >
+                                Sửa
+                            </Button>,
+                            <Button
+                                type="link"
+                                icon={<DeleteOutlined />}
+                                danger
+                                onClick={() => handleDeleteNews(item.id)}
+                            >
+                                Xóa
+                            </Button>,
                         ]}
                     >
-                        <List.Item.Meta
+                        <Card.Meta
                             title={item.title}
                             description={
                                 <>
@@ -204,8 +241,8 @@ const NewsManagement = () => {
                                     {item.image_url && (
                                         <img
                                             src={item.image_url}
-                                            alt="Hình ảnh"
-                                            style={{ width: "100px", height: "auto", marginTop: 10 }}
+                                            alt="News"
+                                            style={{ width: "100px", height: "auto", marginTop: "10px" }}
                                         />
                                     )}
                                     <p style={{ fontSize: "12px", color: "gray" }}>
@@ -214,29 +251,19 @@ const NewsManagement = () => {
                                 </>
                             }
                         />
-                    </List.Item>
+                    </Card>
                 )}
             />
-            <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={filteredNews.length}
-                onChange={(page, size) => {
-                    setCurrentPage(page);
-                    setPageSize(size);
-                }}
-                showSizeChanger
-                pageSizeOptions={["5", "10", "15", "20"]}
-                style={{ marginTop: 20, textAlign: "center" }}
-            />
 
+            {/* Modal for Adding and Editing News */}
             <Modal
                 title={editingNews ? "Chỉnh sửa Tin tức" : "Đăng Tin tức"}
                 open={isModalOpen}
                 onOk={editingNews ? () => handleEditNews(editingNews.id) : handleAddNews}
                 onCancel={() => setIsModalOpen(false)}
+                width={600}
             >
-                <Form form={form} layout="vertical">
+                <Form form={form} layout="vertical" initialValues={editingNews}>
                     <Form.Item
                         label="Tiêu đề"
                         name="title"
@@ -244,18 +271,21 @@ const NewsManagement = () => {
                     >
                         <Input />
                     </Form.Item>
+
                     <Form.Item
                         label="Nội dung"
                         name="content"
                         rules={[{ required: true, message: "Vui lòng nhập nội dung!" }]}
                     >
-                        <TextArea rows={4} />
+                        <Input.TextArea rows={4} />
                     </Form.Item>
+
                     <Form.Item label="Tải ảnh lên">
                         <Upload customRequest={handleUpload} showUploadList={false}>
                             <Button icon={<UploadOutlined />} loading={uploading}>Chọn ảnh</Button>
                         </Upload>
                     </Form.Item>
+
                     <Form.Item label="Ảnh đã tải lên" name="image_url">
                         <Input placeholder="Đường dẫn ảnh" readOnly />
                     </Form.Item>

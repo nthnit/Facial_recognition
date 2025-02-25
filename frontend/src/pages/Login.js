@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Form, Input, Button, Card, App } from "antd"; // Import App từ antd
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth";  // Import API login từ file auth.js
-
+import logoWL from "../assets/images/logoWL.png"
+import logoWhite from "../assets/images/logowhite.svg"
+import loginPattern from "../assets/images/image 4.svg"
 const Login = () => {
     const navigate = useNavigate();
     const { message } = App.useApp();  // Lấy `message` từ App.useApp() để tránh cảnh báo antd
@@ -47,32 +49,43 @@ const Login = () => {
     };
 
     return (
-        <div style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100vh",
-            backgroundColor: "#f5f5f5"  // Thêm màu nền nhẹ
-        }}>
-            <Card title="Đăng nhập" style={{ width: 350, boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", backgroundColor: "#f5f5f5" }}>
+            <div style={{ width: "50%", background: "linear-gradient( #D4EDFF, #0066cc)", padding: "50px", color: "#fff", textAlign: "center", borderRadius: "10px 0 0 10px" }}>
+                <img 
+                    src={logoWL}  // Thay logo thật của bạn
+                    alt="WeLearn Logo"
+                    style={{ maxWidth: "150px", marginBottom: "20px", marginTop: "60px"}}
+                />
+                <h1 style={{ fontSize: "28px", fontWeight: "bold", marginBottom: "20px" }}>WeLearn English</h1>
+                <p style={{ fontSize: "16px" }}>Hệ thống quản lý nội bộ WeLearn</p>
+                <img 
+                    src={loginPattern} 
+                    alt=""
+                    style={{ width: "500px", height: "auto", marginBottom: "20px", marginLeft: "auto", marginRight: "auto" }}
+                />
+            </div>
+
+            <Card style={{ width: 400, boxShadow: "0 4px 8px rgba(0,0,0,0.1)", borderRadius: "0 10px 10px 0", padding: "40px" }}>
+                <h2 style={{ textAlign: "center", marginBottom: "30px", fontWeight: "bold" }}>Sign In to WeLearn Hub</h2>
                 <Form onFinish={onFinish} layout="vertical">
                     <Form.Item
-                        label="Email"
+                        label="Email Address"
                         name="email"
                         rules={[{ required: true, message: "Vui lòng nhập email!" }]}
                     >
-                        <Input placeholder="Nhập email của bạn" />
+                        <Input placeholder="youremail@gmail.com" />
                     </Form.Item>
                     <Form.Item
-                        label="Mật khẩu"
+                        label="Password"
                         name="password"
                         rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
                     >
                         <Input.Password placeholder="Nhập mật khẩu" />
                     </Form.Item>
                     <Form.Item>
-                        <Button type="primary" htmlType="submit" block loading={loading}>
-                            Đăng nhập
+                        <Button type="primary" htmlType="submit" block loading={loading} style={{ background: "linear-gradient(to right, #00aaff, #0066cc)"
+, borderRadius: "5px", fontWeight: "bold" }}>
+                            Sign In
                         </Button>
                     </Form.Item>
                 </Form>

@@ -40,3 +40,4 @@ class ClassResponse(BaseModel):
 
     class Config:
         from_attributes = True  # ✅ Hỗ trợ ORM mode để convert từ SQLAlchemy model
+        

@@ -78,12 +78,15 @@ def update_user(user_id: int, user_data: UserCreateRequest, db: Session = Depend
     # Kiểm tra quyền (Admin mới có thể chỉnh sửa người khác)
     if current_user.role != "admin" and current_user.id != user.id:
         raise HTTPException(status_code=403, detail="Bạn không có quyền chỉnh sửa thông tin người dùng khác")
-
-    user.email = user_data.email
-    user.role = user_data.role
-    user.full_name = user_data.full_name
-    user.date_of_birth = user_data.date_of_birth
-    user.phone_number = user_data.phone_number
+    
+    for key, value in user_data.dict(exclude_unset=True).items():
+        setattr(user, key, value)
+        
+    # user.email = user_data.email
+    # user.role = user_data.role
+    # user.full_name = user_data.full_name
+    # user.date_of_birth = user_data.date_of_birth
+    # user.phone_number = user_data.phone_number
 
     db.commit()
     db.refresh(user)

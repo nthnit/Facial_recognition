@@ -10,51 +10,46 @@ import {
     LogoutOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
-    TeamOutlined, // ✅ Thêm icon giáo viên
+    TeamOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
+import logo from "../assets/images/logoSB.svg"; // ✅ Thay đường dẫn logo
 
 const { Sider } = Layout;
 
-const Sidebar = () => {
+const Sidebar = ({ collapsed, onCollapse }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [collapsed, setCollapsed] = useState(false);
     const [role, setRole] = useState(null);
 
     useEffect(() => {
-        // Lấy role từ localStorage khi component được mount
         const storedRole = localStorage.getItem("role");
         if (storedRole) {
             setRole(storedRole);
         }
     }, []);
 
-    const toggleCollapse = () => {
-        setCollapsed(!collapsed);
-    };
-
     // Danh sách menu theo role
     const menus = {
         admin: [
             { key: "/admin/users", icon: <UserOutlined />, label: "Quản lý người dùng" },
             { key: "/admin/banner", icon: <PictureOutlined />, label: "Quản lý banner" },
-            { key: "/admin/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
+            { key: "/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
         ],
         manager: [
             { key: "/manager/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
             { key: "/manager/students", icon: <UserOutlined />, label: "Quản lý học sinh" },
-            { key: "/manager/teachers", icon: <TeamOutlined />, label: "Quản lý giáo viên" }, // ✅ Thêm menu giáo viên
+            { key: "/manager/teachers", icon: <TeamOutlined />, label: "Quản lý giáo viên" },
             { key: "/manager/assign", icon: <SolutionOutlined />, label: "Phân công giảng viên" },
             { key: "/manager/news", icon: <DashboardOutlined />, label: "Cập nhật tin tức" },
             { key: "/manager/classes", icon: <BookOutlined />, label: "Theo dõi lớp học" },
-            { key: "/manager/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
+            { key: "/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
         ],
         teacher: [
             { key: "/teacher/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
             { key: "/teacher/classes", icon: <BookOutlined />, label: "Lớp học của tôi" },
             { key: "/teacher/schedule", icon: <CalendarOutlined />, label: "Lịch giảng dạy" },
-            { key: "/teacher/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
+            { key: "/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
         ],
     };
 
@@ -65,45 +60,87 @@ const Sidebar = () => {
     };
 
     return (
-        <Sider collapsible collapsed={collapsed} trigger={null} style={{ height: "100vh" }}>
-            {/* Logo + Toggle button */}
+        <Sider
+            collapsible
+            collapsed={collapsed}
+            trigger={null}
+            onCollapse={onCollapse}
+            style={{
+                height: "100vh",
+                position: "fixed",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                backgroundColor: "#ffffff",
+                borderRight: "1px solid #ddd",
+                zIndex: 1000,
+            }}
+        >
+            {/* Header Sidebar */}
             <div
                 style={{
                     display: "flex",
-                    justifyContent: "space-between",
                     alignItems: "center",
-                    padding: "10px",
-                    backgroundColor: "#001529",
-                    color: "white",
-                    fontSize: "18px",
-                    fontWeight: "bold",
+                    justifyContent: collapsed ? "center" : "space-between",
+                    padding: "15px",
+                    backgroundColor: "#ffffff",
+                    transition: "all 0.3s ease",
                 }}
             >
-                {!collapsed && "🎓 School System"}
+                {/* ✅ Logo chỉ hiển thị khi sidebar mở */}
+                {!collapsed && (
+                    <img
+                        src={logo}
+                        alt="Logo"
+                        style={{
+                            width: "80px",
+                            transition: "opacity 0.3s ease",
+                            margin:"auto",
+                            paddingTop: ".75rem"
+                        }}
+                    />
+                )}
+
+                {/* ✅ Nút collapse luôn nằm ở giữa khi sidebar đóng */}
                 <Button
                     type="text"
                     icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                    onClick={toggleCollapse}
-                    style={{ color: "white" }}
+                    onClick={onCollapse}
+                    style={{
+                        color: "#333",
+                        marginLeft: collapsed ? 0 : "auto", // Nếu collapsed, căn giữa
+                    }}
                 />
             </div>
 
             {/* Hiển thị Menu nếu role hợp lệ */}
             {role && menus[role] ? (
                 <Menu
-                    theme="dark"
+                    theme="light"
                     mode="inline"
                     selectedKeys={[location.pathname]}
                     onClick={(e) => navigate(e.key)}
                     items={menus[role]}
+                    style={{ borderRight: "none" }}
                 />
             ) : (
-                <div style={{ padding: "20px", color: "white" }}>Không có quyền truy cập</div>
+                <div style={{ padding: "20px", color: "#666" }}>Không có quyền truy cập</div>
             )}
 
             {/* Logout Button */}
             <div style={{ position: "absolute", bottom: "20px", width: "100%", padding: "10px" }}>
-                <Button type="primary" danger icon={<LogoutOutlined />} block onClick={handleLogout}>
+                <Button
+                    type="primary"
+                    danger
+                    icon={<LogoutOutlined />}
+                    block
+                    onClick={handleLogout}
+                    style={{
+                        backgroundColor: "#ff4d4f",
+                        borderColor: "#ff4d4f",
+                        fontWeight: "bold",
+                    }}
+                >
                     Đăng xuất
                 </Button>
             </div>

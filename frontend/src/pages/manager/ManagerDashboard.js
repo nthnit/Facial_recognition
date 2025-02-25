@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Col, Row, Typography, message } from "antd";
+import { Card, Col, Row, Typography, message, Button } from "antd";
 import { UserOutlined, BookOutlined, SolutionOutlined, ReadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -63,6 +63,9 @@ const ManagerDashboard = () => {
                         <UserOutlined style={styles.icon} />
                         <Title level={3}>{stats.students}</Title>
                         <p>Sinh viên</p>
+                        <Button type="link" style={styles.linkButton} onClick={() => navigate('/manager/students')}>
+                            Xem chi tiết
+                        </Button>
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
@@ -70,6 +73,9 @@ const ManagerDashboard = () => {
                         <SolutionOutlined style={styles.icon} />
                         <Title level={3}>{stats.teachers}</Title>
                         <p>Giảng viên</p>
+                        <Button type="link" style={styles.linkButton} onClick={() => navigate('/manager/teachers')}>
+                            Xem chi tiết
+                        </Button>
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
@@ -77,6 +83,9 @@ const ManagerDashboard = () => {
                         <BookOutlined style={styles.icon} />
                         <Title level={3}>{stats.classes}</Title>
                         <p>Lớp học</p>
+                        <Button type="link" style={styles.linkButton} onClick={() => navigate('/manager/classes')}>
+                            Xem chi tiết
+                        </Button>
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
@@ -84,6 +93,9 @@ const ManagerDashboard = () => {
                         <ReadOutlined style={styles.icon} />
                         <Title level={3}>{stats.news}</Title>
                         <p>Bài viết mới</p>
+                        <Button type="link" style={styles.linkButton} onClick={() => navigate('/manager/news')}>
+                            Xem chi tiết
+                        </Button>
                     </Card>
                 </Col>
             </Row>
@@ -94,21 +106,33 @@ const ManagerDashboard = () => {
 const styles = {
     container: {
         padding: "20px",
+        backgroundColor: "#f5f5f5", // Thêm màu nền cho giao diện
+        borderRadius: "10px", // Bo góc toàn bộ trang
     },
     title: {
-        marginBottom: "20px",
+        marginBottom: "30px",  // Tăng khoảng cách giữa tiêu đề và các phần khác
         textAlign: "center",
+        fontWeight: "bold",
+        fontSize: "24px",
+        color: "#333",
     },
     card: {
         textAlign: "center",
         padding: "20px",
         borderRadius: "10px",
         boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+        backgroundColor: "#fff",  // Màu nền của mỗi card
     },
     icon: {
         fontSize: "50px",
         color: "#1890ff",
         marginBottom: "10px",
+    },
+    linkButton: {
+        color: "#1890ff",
+        padding: 0,
+        fontSize: "14px",
+        fontWeight: "bold",
     },
 };
 

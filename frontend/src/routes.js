@@ -41,7 +41,7 @@ const AppRoutes = () => {
                         {/* 📌 Routes cho Admin */}
                         <Route path="admin/users" element={<UserManagement />} />
                         <Route path="admin/banner" element={<BannerManagement />} />
-                        <Route path="admin/profile" element={<Profile />} />
+                        <Route path="/profile" element={<Profile />} />
 
                         {/* 📌 Routes cho Quản lý giảng viên */}
                         <Route path="manager/dashboard" element={<ManagerDashboard />} />
@@ -49,7 +49,7 @@ const AppRoutes = () => {
                         <Route path="manager/assign" element={<AssignTeaching />} />
                         <Route path="manager/news" element={<NewsManagement />} />
                         <Route path="manager/classes" element={<ClassTracking />} />
-                        <Route path="manager/profile" element={<Profile />} />
+                        <Route path="/profile" element={<Profile />} />
                         <Route path="manager/teachers" element={<TeacherManagement />} />
                         <Route path="manager/students/:id" element={<StudentDetail />} />
                         <Route path="manager/classes/:id" element={<ClassDetail />} /> {/* ✅ Thêm route chi tiết lớp học */}
@@ -58,7 +58,9 @@ const AppRoutes = () => {
                         <Route path="teacher/dashboard" element={<TeacherDashboard />} />
                         <Route path="teacher/schedule" element={<TeachingSchedule />} />
                         <Route path="teacher/classes" element={<MyClasses />} />
-                        <Route path="teacher/profile" element={<Profile />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="teacher/students/:id" element={<StudentDetail />} />
+                        <Route path="teacher/classes/:id" element={<ClassDetail />} />
 
                     </Route>
                 </Route>

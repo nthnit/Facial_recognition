@@ -21,4 +21,4 @@ class Student(Base):
     # 🔹 Sử dụng bảng trung gian ClassStudent thay vì `secondary="class_students"`
     classes = relationship("ClassStudent", back_populates="student_rel", cascade="all, delete-orphan")
 
-    attendances = relationship("Attendance", back_populates="student")
+    attendances = relationship("Attendance", back_populates="student", cascade="all, delete-orphan")

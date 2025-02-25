@@ -16,3 +16,18 @@ class SessionResponse(BaseModel):
     total_students: int
     attendance_rate: float
     students: List[SessionStudent]
+
+class StudentSessionResponse(BaseModel):
+    session_id: int
+    class_id: int
+    class_name: str
+    class_code: str  # ✅ Thêm class_code
+    date: date
+    weekday: str
+    start_time: str
+    end_time: str
+    attendance_status: Optional[str] = "Absent"
+    attendance_rate: Optional[float] = 0.0
+
+    class Config:
+        from_attributes = True

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, Select, Button, Space, message, Input } from "antd";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const { Option } = Select;
 
@@ -109,6 +109,7 @@ const AssignTeaching = () => {
             title: "Mã lớp",
             dataIndex: "class_code",
             key: "class_code",
+            render: (text, record) => <Link to={`/manager/classes/${record.id}`}>{text}</Link>,
         },
         {
             title: "Tên lớp",
