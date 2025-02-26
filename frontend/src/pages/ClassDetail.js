@@ -402,6 +402,17 @@ const ClassDetail = () => {
                 open={isAttendanceModalOpen}
                 onOk={submitAttendance}
                 onCancel={() => setIsAttendanceModalOpen(false)}
+                footer={[
+                    <Button key="faceid" type="primary" onClick={() => navigate(`/face-attendance?classId=${id}&sessionDate=${currentSession?.date}`)}>
+                      Điểm danh FaceID
+                    </Button>,
+                    <Button key="manual" type="primary" onClick={submitAttendance}>
+                      Lưu điểm danh thủ công
+                    </Button>,
+                    <Button key="cancel" onClick={() => setIsAttendanceModalOpen(false)}>
+                      Hủy
+                    </Button>,
+                  ]}
             >
                 <Table
                     columns={[

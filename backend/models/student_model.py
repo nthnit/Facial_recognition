@@ -22,3 +22,6 @@ class Student(Base):
     classes = relationship("ClassStudent", back_populates="student_rel", cascade="all, delete-orphan")
 
     attendances = relationship("Attendance", back_populates="student", cascade="all, delete-orphan")
+    
+    # 🔹 Mối quan hệ với bảng face_embeddings (một học sinh có nhiều embedding, nhưng thường chỉ cần 1)
+    face_embeddings = relationship("FaceEmbedding", back_populates="student", cascade="all, delete-orphan")

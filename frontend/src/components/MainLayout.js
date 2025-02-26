@@ -8,7 +8,7 @@ import { Outlet } from "react-router-dom";
 const { Content } = Layout;
 
 const MainLayout = () => {
-    const [collapsed, setCollapsed] = useState(false); // State để theo dõi trạng thái của Sidebar
+    const [collapsed, setCollapsed] = useState(false); 
 
     const handleSidebarCollapse = () => {
         setCollapsed(!collapsed);

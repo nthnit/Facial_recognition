@@ -9,6 +9,7 @@ import NotFound from "./pages/common/NotFound";
 // general routes
 import StudentDetail from "./pages/StudentDetail";
 import ClassDetail from "./pages/ClassDetail"; // ✅ Import trang thông tin chi tiết lớp học
+import FaceAttendance from "./components/FaceAttendance";
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
@@ -61,6 +62,12 @@ const AppRoutes = () => {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="teacher/students/:id" element={<StudentDetail />} />
                         <Route path="teacher/classes/:id" element={<ClassDetail />} />
+
+                        {/* 📌 Route cho điểm danh khuôn mặt (chỉ cho teacher và manager) */}
+                        <Route 
+                          path="/face-attendance" 
+                          element={<ProtectedRoute allowedRoles={["teacher", "manager"]} component={FaceAttendance} />}
+                        />
 
                     </Route>
                 </Route>

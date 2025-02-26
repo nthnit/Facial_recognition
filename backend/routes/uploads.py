@@ -30,7 +30,7 @@ async def upload_image(
     current_user: User = Depends(get_current_user)
 ):
     # Chỉ cho phép Admin và Manager upload ảnh
-    if current_user.role not in ["admin", "manager"]:
+    if current_user.role not in ["admin", "manager", "teacher"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền upload ảnh")
 
     try:

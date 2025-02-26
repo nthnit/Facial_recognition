@@ -74,6 +74,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
                 backgroundColor: "#ffffff",
                 borderRight: "1px solid #ddd",
                 zIndex: 1000,
+                padding: 0,
             }}
         >
             {/* Header Sidebar */}
@@ -84,7 +85,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
                     justifyContent: collapsed ? "center" : "space-between",
                     padding: "15px",
                     backgroundColor: "#ffffff",
-                    transition: "all 0.3s ease",
+                    transition: "all 0.3s ease"
                 }}
             >
                 {/* ✅ Logo chỉ hiển thị khi sidebar mở */}
@@ -93,9 +94,9 @@ const Sidebar = ({ collapsed, onCollapse }) => {
                         src={logo}
                         alt="Logo"
                         style={{
-                            width: "80px",
+                            width: "50%", // Logo takes the full width when sidebar is open
                             transition: "opacity 0.3s ease",
-                            margin:"auto",
+                            margin: "auto",
                             paddingTop: ".75rem"
                         }}
                     />
@@ -108,9 +109,14 @@ const Sidebar = ({ collapsed, onCollapse }) => {
                     onClick={onCollapse}
                     style={{
                         color: "#333",
-                        marginLeft: collapsed ? 0 : "auto", // Nếu collapsed, căn giữa
+                        position: "absolute", // Makes button fixed within the sidebar
+                        top: collapsed ? "9px" : "10px", // Adjust top positioning when collapsed
+                        right: collapsed ? "23px" : "10px", // Adjust right positioning when collapsed
+                        zIndex: 9999, // Keeps the button above other elements
+                        fontSize: "17px"
                     }}
                 />
+
             </div>
 
             {/* Hiển thị Menu nếu role hợp lệ */}
@@ -132,16 +138,20 @@ const Sidebar = ({ collapsed, onCollapse }) => {
                 <Button
                     type="primary"
                     danger
-                    icon={<LogoutOutlined />}
+                    icon={collapsed ? <LogoutOutlined /> : <><LogoutOutlined /> </>}
                     block
                     onClick={handleLogout}
                     style={{
                         backgroundColor: "#ff4d4f",
                         borderColor: "#ff4d4f",
                         fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent:  "center",
+                        paddingLeft: "1.5rem" 
                     }}
                 >
-                    Đăng xuất
+                    {!collapsed && "Đăng xuất"} {/* Only show text when sidebar is not collapsed */}
                 </Button>
             </div>
         </Sider>
