@@ -3,6 +3,7 @@ import { Card, Col, Row, Typography, message, Button } from "antd";
 import { UserOutlined, BookOutlined, SolutionOutlined, ReadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import usePageTitle from "../common/usePageTitle";
 
 const { Title } = Typography;
 
@@ -13,6 +14,8 @@ const ManagerDashboard = () => {
         classes: 0,
         news: 0,
     });
+
+    usePageTitle("Manager Dashboard") //thay title
 
     const navigate = useNavigate(); // Điều hướng khi token hết hạn
 
