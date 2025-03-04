@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Layout, Input, Avatar, Dropdown, Menu, Button, message, Select } from "antd";
+import { Layout, Input, Avatar, Dropdown, Menu, Button, message, Select, Space, Typography } from "antd";
 import { SearchOutlined, UserOutlined, ExpandOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+const { Text } = Typography;
 const { Header } = Layout;
 
 const TopNavbar = ({ collapsed }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [searchType, setSearchType] = useState("students"); // Thêm biến state để lưu loại tìm kiếm (học sinh hoặc lớp học)
+    const [searchType, setSearchType] = useState("students");
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]); // State lưu trữ kết quả tìm kiếm
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false); // Điều khiển việc hiển thị dropdown
 
-    // 🔹 Gọi API để lấy thông tin user
+    // Gọi API để lấy thông tin user
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
@@ -36,7 +39,7 @@ const TopNavbar = ({ collapsed }) => {
         fetchUserInfo();
     }, [navigate]);
 
-    // 🔹 Xử lý đăng xuất
+    // Xử lý đăng xuất
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -44,7 +47,7 @@ const TopNavbar = ({ collapsed }) => {
         navigate("/login"); // Chuyển về trang login
     };
 
-    // 🔹 Menu dropdown user
+    // Menu dropdown user
     const userMenu = (
         <Menu>
             <Menu.Item key="1">
@@ -56,7 +59,7 @@ const TopNavbar = ({ collapsed }) => {
         </Menu>
     );
 
-    // 🔹 Chế độ fullscreen
+    // Chế độ fullscreen
     const toggleFullScreen = () => {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen();
@@ -65,7 +68,7 @@ const TopNavbar = ({ collapsed }) => {
         }
     };
 
-    // 🔹 Hàm xử lý tìm kiếm
+    // Hàm xử lý tìm kiếm
     const handleSearch = async () => {
         try {
             const token = localStorage.getItem("token");
@@ -76,23 +79,56 @@ const TopNavbar = ({ collapsed }) => {
 
             let apiUrl = "";
             if (searchType === "students") {
-                apiUrl = `http://127.0.0.1:8000/students/search?query=${searchQuery}`;
+                apiUrl = `http://127.0.0.1:8000/students/studentlist/search?query=${searchQuery}`;
             } else if (searchType === "classes") {
-                apiUrl = `http://127.0.0.1:8000/classes/search?query=${searchQuery}`;
+                apiUrl = `http://127.0.0.1:8000/classes/classlist/search?query=${searchQuery}`;
             }
 
             const response = await axios.get(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            // Hiển thị kết quả tìm kiếm hoặc thực hiện điều hướng tới trang kết quả
-            console.log("Kết quả tìm kiếm:", response.data);
-            message.success(`Tìm thấy ${response.data.length} kết quả`);
+            // Lưu kết quả tìm kiếm vào state
+            setSearchResults(response.data);
 
+            // Hiển thị dropdown khi có kết quả
+            setIsDropdownVisible(true);
         } catch (error) {
             message.error("Lỗi khi tìm kiếm.");
+            setIsDropdownVisible(false); // Ẩn dropdown nếu có lỗi
         }
     };
+
+    // Xử lý khi người dùng gõ vào ô tìm kiếm
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+        if (e.target.value.trim()) {
+            handleSearch(); // Gọi hàm tìm kiếm khi người dùng gõ
+        } else {
+            setSearchResults([]); // Nếu không có từ khóa tìm kiếm, xóa kết quả
+            setIsDropdownVisible(false); // Ẩn dropdown nếu không có tìm kiếm
+        }
+    };
+
+    // Hiển thị kết quả tìm kiếm trong Dropdown
+    const searchMenu = (
+        <Menu>
+            {searchResults.length > 0 ? (
+                searchResults.map((item, index) => (
+                    <Menu.Item key={index} onClick={() => console.log(item)}>
+                        <Space direction="vertical" size="small">
+                            <Text strong>{item.full_name || item.name}</Text>
+                            <Text type="secondary">{item.email || item.class_code}</Text>
+                        </Space>
+                    </Menu.Item>
+                ))
+            ) : (
+                <Menu.Item key="noResults" disabled>
+                    <Text type="secondary">Không có kết quả</Text>
+                </Menu.Item>
+            )}
+        </Menu>
+    );
 
     return (
         <Header
@@ -140,14 +176,18 @@ const TopNavbar = ({ collapsed }) => {
                         prefix={<SearchOutlined />}
                         style={{ width: "280px", borderRadius: "20px" }}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange} // Tìm kiếm khi thay đổi
                         onPressEnter={handleSearch} // Tìm kiếm khi nhấn Enter
                     />
                 </div>
 
-                <Dropdown overlay={userMenu} trigger={["click"]}>
+                <Dropdown
+                    overlay={searchMenu}
+                    visible={isDropdownVisible}
+                    onVisibleChange={setIsDropdownVisible} // Kiểm soát việc hiển thị của dropdown
+                >
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "white" }}>
-                        <Avatar icon={<UserOutlined />} />
+                        <Avatar icon={<UserOutlined />} size={35} src={user?.avatar_url || "https://via.placeholder.com/150"} />
                         <span style={{ fontWeight: "bold" }}>{user ? user.full_name : "Người dùng"}</span>
                     </div>
                 </Dropdown>

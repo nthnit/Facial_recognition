@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Popconfirm, Modal, Form, Input, Select, Space, message, DatePicker } from "antd";
-import { EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, LockOutlined } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
 import { useNavigate } from "react-router-dom"; // Để điều hướng khi token hết hạn
@@ -94,6 +94,14 @@ const UserManagement = () => {
             .catch(error => handleRequestError(error, "Lỗi khi xóa người dùng"));
     };
 
+    const handleResetPassword = (id) => {
+        axios.post(`${API_URL}/${id}/reset-password`, {}, { headers: getAuthHeaders() })
+            .then(response => {
+                message.success("Mật khẩu đã được reset thành công!");
+            })
+            .catch(error => handleRequestError(error, "Lỗi khi reset mật khẩu"));
+    };
+
     const columns = [
         { title: "Họ và Tên", dataIndex: "full_name", key: "full_name" },
         { title: "Email", dataIndex: "email", key: "email" },
@@ -115,8 +123,11 @@ const UserManagement = () => {
             render: (_, record) => (
                 <Space>
                     <Button icon={<EditOutlined />} onClick={() => showModal(record)}>Sửa</Button>
+                    <Popconfirm title="Bạn có chắc chắn muốn reset mật khẩu?" onConfirm={() => handleResetPassword(record.id)} okText="Reset" cancelText="Hủy">
+                        <Button type="primary" danger ghost>Reset PW</Button>
+                    </Popconfirm>
                     <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy">
-                        <Button type="link" danger>Xóa</Button>
+                        <Button type="dashed" danger>Xóa</Button>
                     </Popconfirm>
                 </Space>
             )

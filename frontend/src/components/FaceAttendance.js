@@ -156,13 +156,11 @@ const FaceAttendance = () => {
         icon={<ArrowLeftOutlined />}
         onClick={handleGoBack}
         style={{
-          marginBottom: 20,
-          color: '#1890ff', // Màu chữ
-          borderColor: '#1890ff', // Màu viền
-          fontWeight: 'bold', // Chữ đậm
-          display: 'flex',
-          alignItems: 'center',
+          paddingLeft: 0,
+          fontSize: 16,
+          marginBottom: 16
         }}
+        type='link'
       >
         Quay lại
       </Button>
@@ -203,7 +201,7 @@ const FaceAttendance = () => {
         type="primary"
         onClick={() => setIsCameraOpen(true)}
         disabled={loading || !classId || !sessionDate}
-        style={{ marginBottom: 20 }}
+        style={{ marginBottom: 20, marginTop: 20 }}
       >
         Bắt đầu điểm danh khuôn mặt
       </Button>

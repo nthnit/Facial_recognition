@@ -316,9 +316,17 @@ def get_student_sessions(
     return session_list
 
 
-# API search
-@router.get("/search", response_model=List[StudentResponse])
-def search_students(query: str, db: Session = Depends(get_db)):
+# API tìm kiếm học sinh
+@router.get("/studentlist/search", response_model=List[StudentResponse])
+def search_students(
+    query: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Xác thực người dùng
+):
+    # Kiểm tra quyền của người dùng
+    if current_user.role not in ["admin", "manager", "teacher"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền tìm kiếm học sinh")
+
     # Tìm kiếm học sinh theo tên, email hoặc mã học sinh
     results = db.query(Student).filter(
         (Student.full_name.ilike(f"%{query}%")) |

@@ -553,3 +553,58 @@ def get_class_attendance(class_id: int, db: Session = Depends(get_db)):
 
     return attendance_list
 
+
+#  API lấy lịch dạy của giáo viên
+@router.get("/teacher/schedule")
+def get_teacher_schedule(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Kiểm tra quyền của người dùng
+    if current_user.role not in ["admin", "manager", "teacher"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem lịch giảng dạy")
+
+    # Truy vấn các tiết học (sessions) của giáo viên
+    sessions = db.query(SessionModel).join(Class).filter(Class.teacher_id == current_user.id).all()
+
+    # Kiểm tra nếu không có tiết học nào
+    if not sessions:
+        raise HTTPException(status_code=404, detail="Không có tiết học nào được tìm thấy cho giáo viên này")
+
+    # Trả về các tiết học
+    return [
+        {
+            "session_id": session.id,  # ID của tiết học
+            "class_id": session.class_id,  # ID của lớp học
+            "class_name": session.class_obj.name,  # Tên lớp học
+            "teacher_name": session.class_obj.teacher.full_name,  # Tên giáo viên
+            # "topic": session.class_obj.topic,  # Chủ đề lớp học
+            "date": session.date.strftime("%Y-%m-%d"),  # Ngày học
+            "start_time": session.start_time.strftime("%H:%M"),  # Thời gian bắt đầu
+            "end_time": session.end_time.strftime("%H:%M"),  # Thời gian kết thúc
+        }
+        for session in sessions
+    ]
+
+
+# API search
+@router.get("/classlist/search", response_model=List[ClassResponse])
+def search_classes(
+    query: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Xác thực người dùng
+):
+    # Kiểm tra quyền của người dùng
+    if current_user.role not in ["admin", "manager", "teacher"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền tìm kiếm lớp học")
+
+    # Tìm kiếm lớp học theo tên, mã lớp hoặc chủ đề
+    results = db.query(Class).filter(
+        (Class.name.ilike(f"%{query}%")) |
+        (Class.class_code.ilike(f"%{query}%")) |
+        (Class.subject.ilike(f"%{query}%"))
+    ).all()
+
+    # Chuyển đổi trường `weekly_schedule` từ chuỗi thành danh sách số nguyên
+    for result in results:
+        if result.weekly_schedule:
+            result.weekly_schedule = [int(day) for day in result.weekly_schedule.split(",")]
+
+    return results

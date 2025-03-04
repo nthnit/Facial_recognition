@@ -119,7 +119,8 @@ def get_user_me(current_user: User = Depends(get_current_user)):
         "phone_number": current_user.phone_number,
         "role": current_user.role,
         "date_of_birth": current_user.date_of_birth,
-        "address": current_user.address
+        "address": current_user.address,
+        "avatar_url": current_user.avatar_url,
     }
 
 # 🔹 API PUT: Đổi mật khẩu người dùng (Yêu cầu xác thực)
@@ -150,3 +151,26 @@ def change_password(
     db.refresh(user)
 
     return user
+
+
+# 🔹 API POST: Reset mật khẩu người dùng (Yêu cầu xác thực)
+@router.post("/{user_id}/reset-password")
+def reset_password(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Kiểm tra quyền admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền thực hiện thao tác này")
+
+    # Lấy người dùng cần reset mật khẩu
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+
+    # Cập nhật mật khẩu thành "Active123!"
+    new_password = "Active123!"
+    hashed_password = hash_password(new_password)
+    user.password = hashed_password
+
+    db.commit()
+    db.refresh(user)
+
+    return {"detail": "Mật khẩu đã được reset thành công"}

@@ -20,7 +20,7 @@ def get_news(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in ["admin", "manager"]:
+    if current_user.role not in ["admin", "manager", "teacher"]:
         logger.warning(f"Người dùng {current_user.id} không có quyền xem danh sách tin tức")
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem danh sách tin tức")
 

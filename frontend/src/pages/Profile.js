@@ -107,7 +107,7 @@ const Profile = () => {
 
             const token = localStorage.getItem("token");
             await axios.put(
-                `${API_BASE_URL}/users/change-password`,
+                `${API_BASE_URL}/users/${user.id}/change-password`,
                 {
                     old_password: values.oldPassword,
                     new_password: values.newPassword
@@ -135,7 +135,7 @@ const Profile = () => {
     return (
         <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
             <Card style={{ width: 500, textAlign: "center", boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)", borderRadius: 10 }}>
-                <Avatar size={100} src={user.avatar_url || "https://via.placeholder.com/150"} />
+                <Avatar size={120} src={user.avatar_url || "https://via.placeholder.com/150"} style={{border:"5px solid rgb(0, 147, 239)"}}/>
                 <h2 style={{ marginTop: 10 }}>{user.full_name}</h2>
                 <p><strong>Vai trò:</strong> {user.role === "admin" ? "Quản trị viên" : user.role === "manager" ? "Quản lý giảng viên" : "Giảng viên"}</p>
 
