@@ -5,10 +5,12 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import moment from "moment";
+import usePageTitle from "../common/usePageTitle";
 
 const { Title } = Typography;
 
 const TeacherManagement = () => {
+    usePageTitle("Teacher Management");
     const [teachers, setTeachers] = useState([]);
     const [filteredTeachers, setFilteredTeachers] = useState([]);
     const [searchText, setSearchText] = useState("");

@@ -1,9 +1,12 @@
 import React from "react";
 import { Card, List, Typography, Row, Col } from "antd";
+import usePageTitle from "../common/usePageTitle";
+
 
 const { Title } = Typography;
 
 const TeacherDashboard = () => {
+    usePageTitle("Teacher Dashboard");
     // Dữ liệu mẫu (có thể thay thế bằng API)
     const todayClasses = [
         { id: 1, name: "Toán - Lớp 10A1", time: "08:00 - 10:00" },

@@ -20,3 +20,16 @@ class UserResponse(BaseModel):
 
     class Config:
         orm_mode = True  # Đảm bảo trả về được dữ liệu theo model
+        
+# change PW
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+        
+# schemas/user_schema.py
+class PasswordChangeResponse(BaseModel):
+    message: str
+
+    class Config:
+        orm_mode = True
+

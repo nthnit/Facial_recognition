@@ -2,8 +2,10 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { FrownOutlined } from "@ant-design/icons";
+import usePageTitle from "./usePageTitle";
 
 const AccessDenied = ({ defaultRoute }) => {
+    usePageTitle("Access Denied");
     const navigate = useNavigate();
 
     return (

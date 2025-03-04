@@ -5,10 +5,12 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import moment from "moment";
+import usePageTitle from "../common/usePageTitle";
 
 const { Option } = Select;
 
 const ClassTracking = () => {
+    usePageTitle("Class Tracking");
     const [classes, setClasses] = useState([]);
     const [filteredClasses, setFilteredClasses] = useState([]);
     const [teachers, setTeachers] = useState([]);

@@ -4,10 +4,12 @@ import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Sel
 import axios from "axios";
 import moment from "moment";
 import * as XLSX from "xlsx";
+import usePageTitle from "./common/usePageTitle";
 const { TabPane } = Tabs;
 const { Option } = Select;
 
 const ClassDetail = () => {
+    usePageTitle("Class Detail");
     const { id } = useParams();
     const navigate = useNavigate();
     const [classInfo, setClassInfo] = useState(null);

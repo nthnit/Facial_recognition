@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Table, Select, Button, Space, message, Input } from "antd";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import usePageTitle from "../common/usePageTitle";
 
 const { Option } = Select;
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 const AssignTeaching = () => {
+    usePageTitle("Assign");
     const [classes, setClasses] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(false);

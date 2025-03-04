@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Card, Avatar, Button, Form, Input, Divider, message, DatePicker, Upload, Row, Col } from "antd";
-import { UserOutlined, EditOutlined, SaveOutlined, LockOutlined, UploadOutlined } from "@ant-design/icons";
+import { UserOutlined, EditOutlined, SaveOutlined, LockOutlined, UploadOutlined, CloseOutlined } from "@ant-design/icons";
 import axios from "axios";
 import moment from "moment";
+import usePageTitle from "./common/usePageTitle";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 const Profile = () => {
+    usePageTitle("Profile");
     const [isEditing, setIsEditing] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [user, setUser] = useState(null);
@@ -41,6 +43,14 @@ const Profile = () => {
 
     const handleEdit = () => {
         setIsEditing(true);
+    };
+
+    const handleCancelEdit = () => {
+        form.setFieldsValue({
+            ...user,
+            date_of_birth: user.date_of_birth ? moment(user.date_of_birth) : null,
+        });
+        setIsEditing(false);
     };
 
     const handleSave = async () => {
@@ -93,8 +103,11 @@ const Profile = () => {
 
             const token = localStorage.getItem("token");
             await axios.put(
-                `${API_BASE_URL}/users/${user.id}/change-password`,
-                { newPassword: values.newPassword },
+                `${API_BASE_URL}/users/change-password`,
+                {
+                    old_password: values.oldPassword,
+                    new_password: values.newPassword
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -104,6 +117,11 @@ const Profile = () => {
         } catch (error) {
             message.error("Lỗi khi đổi mật khẩu.");
         }
+    };
+
+    const handleCancelPasswordChange = () => {
+        passwordForm.resetFields();
+        setIsChangingPassword(false);
     };
 
     if (!user) {
@@ -156,6 +174,9 @@ const Profile = () => {
                         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} block>
                             Lưu thay đổi
                         </Button>
+                        <Button type="default" icon={<CloseOutlined />} onClick={handleCancelEdit} block style={{ marginTop: 10 }}>
+                            Hủy
+                        </Button>
                     </Form>
                 ) : (
                     <>
@@ -175,6 +196,9 @@ const Profile = () => {
 
                 {isChangingPassword && (
                     <Form form={passwordForm} layout="vertical" style={{ marginTop: 20 }}>
+                        <Form.Item label="Mật khẩu cũ" name="oldPassword" rules={[{ required: true, message: "Vui lòng nhập mật khẩu cũ!" }]}>
+                            <Input.Password />
+                        </Form.Item>
                         <Form.Item label="Mật khẩu mới" name="newPassword" rules={[{ required: true, message: "Vui lòng nhập mật khẩu mới!" }]}>
                             <Input.Password />
                         </Form.Item>
@@ -183,6 +207,9 @@ const Profile = () => {
                         </Form.Item>
                         <Button type="primary" onClick={handleChangePassword} block>
                             Lưu mật khẩu mới
+                        </Button>
+                        <Button type="default" icon={<CloseOutlined />} onClick={handleCancelPasswordChange} block style={{ marginTop: 10 }}>
+                            Hủy
                         </Button>
                     </Form>
                 )}

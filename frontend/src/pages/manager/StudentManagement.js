@@ -5,10 +5,12 @@ import axios from "axios";
 import moment from "moment";
 import * as XLSX from "xlsx"; 
 import { useNavigate, Link } from "react-router-dom";
+import usePageTitle from "../common/usePageTitle";
 
 const { Title } = Typography;
 const API_BASE_URL = "http://127.0.0.1:8000";
 const StudentManagement = () => {
+    usePageTitle("Student Management");
     const [students, setStudents] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]);
     const [searchText, setSearchText] = useState("");

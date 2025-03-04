@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
+import usePageTitle from "./usePageTitle";
 
 const NotFound = () => {
+    usePageTitle("Page Not Found");
     const navigate = useNavigate();
     const [redirectPath, setRedirectPath] = useState("/");
 

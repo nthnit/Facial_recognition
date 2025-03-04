@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Calendar, Badge, Button } from "antd";
 import { useNavigate } from "react-router-dom";
-
+import usePageTitle from "../common/usePageTitle";
 const TeachingSchedule = () => {
+    usePageTitle("Teaching Schedule");
     const navigate = useNavigate();
     
     // Dữ liệu mẫu (có thể thay thế bằng API)

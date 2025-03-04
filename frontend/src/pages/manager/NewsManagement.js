@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutli
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
+import usePageTitle from "../common/usePageTitle";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -11,6 +12,7 @@ const { Title, Text } = Typography;
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 const NewsManagement = () => {
+    usePageTitle("News Management");
     const [newsList, setNewsList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);

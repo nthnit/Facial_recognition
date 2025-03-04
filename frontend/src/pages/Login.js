@@ -5,7 +5,9 @@ import { login } from "../api/auth";  // Import API login từ file auth.js
 import logoWL from "../assets/images/logoWL.png"
 import logoWhite from "../assets/images/logowhite.svg"
 import loginPattern from "../assets/images/image 4.svg"
+import usePageTitle from "./common/usePageTitle";
 const Login = () => {
+    usePageTitle("Login");
     const navigate = useNavigate();
     const { message } = App.useApp();  // Lấy `message` từ App.useApp() để tránh cảnh báo antd
     const [loading, setLoading] = useState(false);  // State để hiển thị loading khi đang đăng nhập
