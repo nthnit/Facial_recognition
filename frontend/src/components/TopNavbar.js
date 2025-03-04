@@ -110,12 +110,23 @@ const TopNavbar = ({ collapsed }) => {
         }
     };
 
+    // Xử lý khi người dùng click vào kết quả tìm kiếm
+    const handleMenuItemClick = (item) => {
+        if (searchType === "students") {
+            // Điều hướng tới trang chi tiết học sinh
+            navigate(`${user.role}/students/${item.id}`);
+        } else if (searchType === "classes") {
+            // Điều hướng tới trang chi tiết lớp học
+            navigate(`${user.role}/classes/${item.id}`);
+        }
+    };
+
     // Hiển thị kết quả tìm kiếm trong Dropdown
     const searchMenu = (
         <Menu>
             {searchResults.length > 0 ? (
                 searchResults.map((item, index) => (
-                    <Menu.Item key={index} onClick={() => console.log(item)}>
+                    <Menu.Item key={index} onClick={() => handleMenuItemClick(item)}>
                         <Space direction="vertical" size="small">
                             <Text strong>{item.full_name || item.name}</Text>
                             <Text type="secondary">{item.email || item.class_code}</Text>
@@ -181,16 +192,28 @@ const TopNavbar = ({ collapsed }) => {
                     />
                 </div>
 
-                <Dropdown
-                    overlay={searchMenu}
-                    visible={isDropdownVisible}
-                    onVisibleChange={setIsDropdownVisible} // Kiểm soát việc hiển thị của dropdown
-                >
+                <Dropdown overlay={userMenu} trigger={["click"]}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "white" }}>
-                        <Avatar icon={<UserOutlined />} size={35} src={user?.avatar_url || "https://via.placeholder.com/150"} />
+                        <Avatar icon={<UserOutlined />} />
                         <span style={{ fontWeight: "bold" }}>{user ? user.full_name : "Người dùng"}</span>
                     </div>
                 </Dropdown>
+
+                {/* Dropdown hiển thị kết quả tìm kiếm dưới ô input */}
+                <div
+                style={{position:"relative", top:"4.25vh", right:"6.5vw"}}
+                >
+                    <Dropdown
+                    overlay={searchMenu}
+                    visible={isDropdownVisible}
+                    onVisibleChange={setIsDropdownVisible} // Kiểm soát việc hiển thị của dropdown
+                    placement="bottomRight"  // Đảm bảo dropdown xuất hiện dưới ô tìm kiếm
+                    style={{margin:"60px"}}
+                >
+                    
+                </Dropdown>
+                </div>
+                
             </div>
         </Header>
     );

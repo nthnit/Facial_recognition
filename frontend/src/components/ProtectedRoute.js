@@ -22,7 +22,7 @@ const roleRoutes = {
         "/profile", 
         "/teacher/classes",  // Thêm quyền truy cập cho teacher vào chi tiết lớp
         "/teacher/students", // Thêm quyền truy cập cho teacher vào chi tiết học sinh
-        "/face-attendance"   // Thêm route FaceAttendance cho teacher
+        "/face-attendance",   // Thêm route FaceAttendance cho teacher
     ]
 };
 
