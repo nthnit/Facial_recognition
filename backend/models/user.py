@@ -14,6 +14,9 @@ class User(Base):
     date_of_birth = Column(Date, nullable=True)
     access_token = Column(Text, nullable=True)   # 🔹 Lưu Access Token
     refresh_token = Column(Text, nullable=True)  # 🔹 Lưu Refresh Token
+    avatar_url = Column(String(255), nullable=True)
+    address = Column(String(255), nullable=True)
+    
 
     # Liên kết với bảng news (một người dùng có thể có nhiều bài viết)
     news = relationship("News", back_populates="author")

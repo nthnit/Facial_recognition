@@ -118,7 +118,8 @@ def get_user_me(current_user: User = Depends(get_current_user)):
         "full_name": current_user.full_name,
         "phone_number": current_user.phone_number,
         "role": current_user.role,
-        "date_of_birth": current_user.date_of_birth
+        "date_of_birth": current_user.date_of_birth,
+        "address": current_user.address
     }
 
 # 🔹 API PUT: Đổi mật khẩu người dùng (Yêu cầu xác thực)

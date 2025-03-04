@@ -58,6 +58,9 @@ const Profile = () => {
             const values = await form.validateFields();
             const token = localStorage.getItem("token");
 
+            // Chuyển ngày sinh từ moment thành định dạng 'YYYY-MM-DD'
+            values.date_of_birth = values.date_of_birth.format("YYYY-MM-DD");
+
             await axios.put(`${API_BASE_URL}/users/${user.id}`, values, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -85,7 +88,8 @@ const Profile = () => {
                 },
             });
 
-            form.setFieldsValue({ image: response.data.image_url });
+            // Cập nhật đường dẫn ảnh vào form
+            form.setFieldsValue({ avatar_url: response.data.image_url });
             message.success("Ảnh đã tải lên thành công!");
         } catch (error) {
             message.error("Lỗi khi tải ảnh lên.");
@@ -131,8 +135,7 @@ const Profile = () => {
     return (
         <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
             <Card style={{ width: 500, textAlign: "center", boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)", borderRadius: 10 }}>
-                <Avatar size={100} src={user.image || "https://via.placeholder.com/150"} />
-
+                <Avatar size={100} src={user.avatar_url || "https://via.placeholder.com/150"} />
                 <h2 style={{ marginTop: 10 }}>{user.full_name}</h2>
                 <p><strong>Vai trò:</strong> {user.role === "admin" ? "Quản trị viên" : user.role === "manager" ? "Quản lý giảng viên" : "Giảng viên"}</p>
 
@@ -171,6 +174,14 @@ const Profile = () => {
                             </Upload>
                         </Form.Item>
 
+                        <Form.Item label="Đường dẫn ảnh đại diện" name="avatar_url" initialValue={user.avatar_url}>
+                            <Input readOnly />
+                        </Form.Item>
+
+                        <Form.Item label="Vai trò" name="role" rules={[{ required: true, message: "Vui lòng chọn vai trò!" }]}>
+                            <Input disabled value={user.role} />
+                        </Form.Item>
+
                         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} block>
                             Lưu thay đổi
                         </Button>
@@ -184,6 +195,7 @@ const Profile = () => {
                         <p><strong>Số điện thoại:</strong> {user.phone_number}</p>
                         <p><strong>Địa chỉ:</strong> {user.address}</p>
                         <p><strong>Ngày sinh:</strong> {moment(user.date_of_birth).format("DD-MM-YYYY")}</p>
+                        <p><strong>Vai trò:</strong> {user.role}</p>
 
                         <Button type="default" icon={<EditOutlined />} onClick={handleEdit} block>
                             Chỉnh sửa thông tin
