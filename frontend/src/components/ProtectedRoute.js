@@ -23,6 +23,7 @@ const roleRoutes = {
         "/teacher/classes",  // Thêm quyền truy cập cho teacher vào chi tiết lớp
         "/teacher/students", // Thêm quyền truy cập cho teacher vào chi tiết học sinh
         "/face-attendance",   // Thêm route FaceAttendance cho teacher
+        "/news"
     ]
 };
 
@@ -47,7 +48,7 @@ const ProtectedRoute = ({ allowedRoles, component: Component }) => {
         allowedRoles.includes(userRole) &&
         (roleRoutes[userRole]?.includes(location.pathname) ||
          (userRole === "manager" && (location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/") || location.pathname === "/face-attendance")) ||
-         (userRole === "teacher" && (location.pathname.startsWith("/teacher/students/") || location.pathname.startsWith("/teacher/classes/") || location.pathname === "/face-attendance")));
+         (userRole === "teacher" && (location.pathname.startsWith("/teacher/students/") || location.pathname.startsWith("/teacher/classes/") || location.pathname === "/face-attendance" || location.pathname.startsWith("/news"))));
 
     if (!isAllowed) {
         console.warn("🚨 Không có quyền truy cập vào:", location.pathname);

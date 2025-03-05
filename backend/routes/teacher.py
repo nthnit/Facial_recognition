@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from database.mysql import get_db
 from models.user import User
 from models.class_model import Class
+from models.class_students_model import ClassStudent
 from schemas.teacher_schema import TeacherCreate, TeacherUpdate, TeacherResponse
-from schemas.class_schema import ClassResponse
+from schemas.class_schema import ClassTeacherResponse
 from typing import List
 from utils.security import hash_password
 from routes.user import get_current_user  # ✅ Import xác thực user
@@ -121,7 +122,7 @@ def delete_teacher(
     return {"detail": "Teacher deleted successfully"}
 
 # 📌 **6. API: Lấy danh sách lớp học mà giáo viên đang giảng dạy**
-@router.get("/{teacher_id}/classes", response_model=List[ClassResponse])
+@router.get("/{teacher_id}/classes", response_model=List[ClassTeacherResponse])
 def get_teacher_classes(
     teacher_id: int, 
     db: Session = Depends(get_db), 
@@ -135,22 +136,30 @@ def get_teacher_classes(
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
 
-    # Lấy danh sách lớp mà giáo viên đang giảng dạy
+    # Lấy danh sách lớp mà giáo viên đang giảng dạy và đếm số học sinh
     classes = db.query(Class).filter(Class.teacher_id == teacher_id).all()
 
-    return [
-        ClassResponse(
-            id=class_obj.id,
-            class_code=class_obj.class_code,
-            name=class_obj.name,
-            teacher_id=class_obj.teacher_id,
-            teacher_name=teacher.full_name,
-            start_date=class_obj.start_date,
-            end_date=class_obj.end_date,
-            total_sessions=class_obj.total_sessions,
-            subject=class_obj.subject,
-            status=class_obj.status,
-            weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")] if class_obj.weekly_schedule else []
+    result = []
+    for class_obj in classes:
+        # Tính tổng số học sinh trong lớp
+        total_students = db.query(ClassStudent).filter(ClassStudent.class_id == class_obj.id).count()
+
+        # Thêm vào kết quả
+        result.append(
+            ClassTeacherResponse(
+                id=class_obj.id,
+                class_code=class_obj.class_code,
+                name=class_obj.name,
+                teacher_id=class_obj.teacher_id,
+                teacher_name=teacher.full_name,
+                start_date=class_obj.start_date,
+                end_date=class_obj.end_date,
+                total_sessions=class_obj.total_sessions,
+                subject=class_obj.subject,
+                status=class_obj.status,
+                total_students=total_students,  # Thêm thông tin số học sinh
+                weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")] if class_obj.weekly_schedule else []
+            )
         )
-        for class_obj in classes
-    ]
+
+    return result

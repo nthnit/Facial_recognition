@@ -37,6 +37,25 @@ class ClassResponse(BaseModel):
     subject: str
     status: str
     weekly_schedule: Optional[List[int]] = None  # ✅ Thêm lịch học vào response
+    # total_students: Optional[int]
+
+    class Config:
+        from_attributes = True  # ✅ Hỗ trợ ORM mode để convert từ SQLAlchemy model
+        
+# Schema để trả về thông tin lớp học
+class ClassTeacherResponse(BaseModel):
+    id: int
+    class_code: str
+    name: str
+    teacher_id: Optional[int]  # ✅ Giữ teacher_id để tránh lỗi
+    teacher_name: Optional[str] = None  # ✅ Thêm teacher_name để hiển thị tên giáo viên
+    start_date: date
+    end_date: date
+    total_sessions: int
+    subject: str
+    status: str
+    weekly_schedule: Optional[List[int]] = None  # ✅ Thêm lịch học vào response
+    total_students: Optional[int]
 
     class Config:
         from_attributes = True  # ✅ Hỗ trợ ORM mode để convert từ SQLAlchemy model

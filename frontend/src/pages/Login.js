@@ -52,7 +52,7 @@ const Login = () => {
 
     return (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", backgroundColor: "#f5f5f5" }}>
-            <div style={{ width: "50%", background: "linear-gradient( #D4EDFF, #0066cc)", padding: "50px", color: "#fff", textAlign: "center", borderRadius: "10px 0 0 10px" }}>
+            <div style={{ width: "50%", background: "linear-gradient( #D4EDFF, #0066cc)", padding: "50px", color: "#fff", textAlign: "center", borderRadius: "10px" }}>
                 <img 
                     src={logoWL}  // Thay logo thật của bạn
                     alt="WeLearn Logo"

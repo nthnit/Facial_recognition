@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database.mysql import get_db
 from models.news_model import News
 from models.user import User
-from schemas.news_schema import NewsCreate, NewsUpdate, NewsResponse
+from schemas.news_schema import NewsCreate, NewsUpdate, NewsResponse, NewsDetailResponse
 from typing import List
 from routes.user import get_current_user
 from datetime import datetime
@@ -28,17 +28,28 @@ def get_news(
     return news
 
 # 🟢 API LẤY CHI TIẾT MỘT TIN TỨC
-@router.get("/{news_id}", response_model=NewsResponse)
+@router.get("/{news_id}", response_model=NewsDetailResponse)
 def get_news_detail(
     news_id: int, 
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Truy vấn tin tức từ database
     news_item = db.query(News).filter(News.id == news_id).first()
     if not news_item:
         raise HTTPException(status_code=404, detail="Tin tức không tồn tại")
-
+    
+    # Truy vấn thông tin người đăng tin tức (author_id là id của người đăng)
+    author = db.query(User).filter(User.id == news_item.author_id).first()
+    if author:
+        news_item.author_name = author.full_name
+        news_item.author_email = author.email
+    else:
+        news_item.author_name = "Không xác định"
+        news_item.author_email = "Không xác định"
+    
     return news_item
+
 
 # 🟢 API TẠO TIN TỨC (chỉ Manager và Admin có quyền)
 @router.post("/", response_model=NewsResponse)

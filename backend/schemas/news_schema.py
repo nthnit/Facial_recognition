@@ -31,3 +31,18 @@ class NewsResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class NewsDetailResponse(BaseModel):
+    id: int
+    title: str
+    content: str
+    image_url: Optional[str]
+    author_id: int
+    status: NewsStatusEnum
+    created_at: datetime  # ✅ Đổi từ `date` thành `datetime`
+    updated_at: datetime  # ✅ Đổi từ `date` thành `datetime`
+    author_name: str  # Thêm trường author_name
+    author_email: str
+
+    class Config:
+        orm_mode = True

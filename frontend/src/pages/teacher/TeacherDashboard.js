@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination } from "antd";
+import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination, Button } from "antd";
 import usePageTitle from "../common/usePageTitle";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const { Title, Text } = Typography;
@@ -18,6 +19,7 @@ const TeacherDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại cho phần tin tức
     const [pageSize] = useState(4); // Số tin tức hiển thị mỗi trang
+    const navigate = useNavigate();
 
     // Fetch classes data
     const fetchClassesData = async () => {
@@ -82,6 +84,11 @@ const TeacherDashboard = () => {
         }, {});
     };
 
+    // Hàm xử lý click vào lớp
+    const handleClassClick = (classId) => {
+        navigate(`/teacher/classes/${classId}`);
+    };
+
     // Render classes with group by date
     const renderClasses = (classes) => {
         const groupedClasses = groupClassesByDate(classes);
@@ -91,24 +98,29 @@ const TeacherDashboard = () => {
                 {groupedClasses[date].length === 0 ? (
                     <Empty description="Không có lớp học" />
                 ) : (
-                    <List
-                        dataSource={groupedClasses[date]}
-                        renderItem={(item) => (
-                            <List.Item>
-                                <List.Item.Meta
+                    <Row gutter={[16, 16]}>
+                        {groupedClasses[date].map((item) => (
+                            <Col span={8} key={item.id}>
+                                <Card
                                     title={item.class_name}
-                                    description={`Thời gian: ${item.start_time} - ${item.end_time}`}
-                                />
-                                <List.Item><div>
+                                    bordered={false}
+                                    extra={
+                                        <Button
+                                            type="link"
+                                            onClick={() => handleClassClick(item.class_id)} // Xử lý sự kiện click
+                                        >
+                                            Xem chi tiết
+                                        </Button>
+                                    }
+                                >
                                     <Text><strong>Giảng viên:</strong> {item.teacher_name}</Text><br />
-                                    <Text><strong>Phòng học:</strong> {item.classroom}</Text><br />
                                     <Text><strong>Môn học:</strong> {item.subject}</Text><br />
                                     <Text><strong>Số học sinh:</strong> {item.total_students}</Text><br />
-                                    <Text><strong>Chủ đề:</strong> {item.topic}</Text>
-                                </div></List.Item>
-                            </List.Item>
-                        )}
-                    />
+                                    <Text><strong>Thời gian:</strong> {item.start_time} - {item.end_time}</Text>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
                 )}
                 <Divider />
             </div>
@@ -123,12 +135,17 @@ const TeacherDashboard = () => {
     // Paginated news
     const paginatedNews = news.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+    // Handle News click
+    const handleNewsClick= (id) => {
+        navigate(`/news/${id}`);
+    };
+
     return (
         <div style={{ padding: 20 }}>
             <h2>Xin chào,</h2>
             {/* Banner */}
             <Card style={{ marginBottom: 20, textAlign: "center" }}>
-                <Title level={2}>Chào mừng đến với hệ thống giảng dạy</Title>
+                <Title level={2}>Chào mừng đến với hệ thống quản lý giảng dạy</Title>
                 <p>Hệ thống hỗ trợ giảng viên quản lý lớp học hiệu quả.</p>
             </Card>
 
@@ -189,7 +206,7 @@ const TeacherDashboard = () => {
                         <List
                             dataSource={paginatedNews}
                             renderItem={(item) => (
-                                <List.Item>
+                                <List.Item >
                                     <Row gutter={16}>
                                         <Col span={6}>
                                             <img
@@ -199,9 +216,21 @@ const TeacherDashboard = () => {
                                             />
                                         </Col>
                                         <Col span={18}>
-                                            <Text strong>{item.title}</Text>
+                                        <Text 
+                                            strong 
+                                            onClick={() => handleNewsClick(item.id)} 
+                                            style={{ 
+                                                cursor: "pointer", 
+                                                textDecoration: "none" 
+                                            }} 
+                                            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'} // Khi hover
+                                            onMouseLeave={(e) => e.target.style.textDecoration = 'none'} // Khi không hover
+                                        >
+                                            {item.title}
+                                        </Text>
+
                                             <p>{item.content.slice(0, 100)}...</p>
-                                            <Text type="secondary">{new Date(item.created_at).toLocaleDateString()}</Text>
+                                            <Text type="secondary">Ngày đăng: {new Date(item.created_at).toLocaleDateString()}</Text>
                                         </Col>
                                     </Row>
                                 </List.Item>

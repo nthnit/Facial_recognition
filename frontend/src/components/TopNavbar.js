@@ -53,7 +53,7 @@ const TopNavbar = ({ collapsed }) => {
             <Menu.Item key="1">
                 <a href="/profile">Hồ sơ cá nhân</a>
             </Menu.Item>
-            <Menu.Item key="2" onClick={handleLogout}>
+            <Menu.Item key="2" onClick={handleLogout} danger >
                 Đăng xuất
             </Menu.Item>
         </Menu>
@@ -194,7 +194,7 @@ const TopNavbar = ({ collapsed }) => {
 
                 <Dropdown overlay={userMenu} trigger={["click"]}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "white" }}>
-                        <Avatar icon={<UserOutlined />} />
+                        <Avatar size={35} src={user?.avatar_url || <UserOutlined />} style={{border:"5px solid rgb(0, 147, 239)"}} />
                         <span style={{ fontWeight: "bold" }}>{user ? user.full_name : "Người dùng"}</span>
                     </div>
                 </Dropdown>
