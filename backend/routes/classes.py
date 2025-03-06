@@ -44,7 +44,7 @@ def get_classes(
         elif cls.start_date <= current_date <= cls.end_date:
             cls.status = "Active"
         else:
-            cls.status = "Closed"
+            cls.status = "Finish"
 
         # Lưu vào database nếu status thay đổi
         db.commit()

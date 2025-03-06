@@ -102,10 +102,16 @@ const MyClasses = () => {
                                             color:
                                                 classItem.status === "Active"
                                                     ? "green"
+                                                    : classItem.status === "Planning"
+                                                    ? "rgb(230,178,67)"
                                                     : classItem.status === "Closed"
                                                     ? "red"
-                                                    : "gray",
+                                                    : "rgb(85,127,213)",
                                             fontWeight: "bold",
+                                            border: "2px solid",
+                                            padding: "0.15rem 0.5rem",
+                                            borderRadius: "5px",
+                                            backgroundColor: "rgba(255,255,255,0.8)",
                                         }}
                                     >
                                         {classItem.status}

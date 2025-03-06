@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch } from "antd";
+import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch,  Progress, Row, Col, Typography  } from "antd";
+import { CheckOutlined } from '@ant-design/icons';
 import axios from "axios";
 import moment from "moment";
 import * as XLSX from "xlsx";
 import usePageTitle from "./common/usePageTitle";
 const { TabPane } = Tabs;
 const { Option } = Select;
-
+const { Title, Text } = Typography;
 const ClassDetail = () => {
     usePageTitle("Class Detail");
     const { id } = useParams();
@@ -25,6 +26,8 @@ const ClassDetail = () => {
     const [currentSession, setCurrentSession] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [form] = Form.useForm();
+    const currentUserRole = localStorage.getItem("role");
+
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem("token");
@@ -272,7 +275,22 @@ const ClassDetail = () => {
         }
     };
 
-    
+    const calculateProgress = () => {
+        if (classInfo && sessions.length) {
+            const completedSessions = sessions.filter(session => session.date <= new Date().toISOString().split("T")[0]).length;
+            return Math.floor((completedSessions / classInfo.total_sessions) * 100);
+        }
+        return 0;
+    };
+
+    const renderProgress = () => {
+        const progress = calculateProgress();
+        if (progress === 100) {
+            return <CheckOutlined style={{ fontSize: '36px', color: 'rgb(68,19,137)' }} />;
+        } else {
+            return `${progress}%`;
+        }
+    };
 
     if (loading) return <p>Đang tải thông tin lớp học...</p>;
 
@@ -281,32 +299,86 @@ const ClassDetail = () => {
 
             {/* 🔹 Breadcrumb hoặc nút Back */}
             <div style={{ marginBottom: 16 }}>
-                <Breadcrumb>
-                    <Breadcrumb.Item>
-                        <Link to="/manager/classes">Quản lý lớp học</Link>
-                    </Breadcrumb.Item>
-                    <Breadcrumb.Item>{classInfo.class_code}</Breadcrumb.Item>
-                </Breadcrumb>
+            <Breadcrumb style={{ marginBottom: 16 }}>
+                <Breadcrumb.Item>
+                    <Link to={currentUserRole === "teacher" ? "/teacher/classes" : "/manager/classes"}>
+                        {currentUserRole === "teacher" ? "Lớp học của tôi" : "Quản lý lớp học"}
+                    </Link>
+                </Breadcrumb.Item>
+                <Breadcrumb.Item>{classInfo.class_code}</Breadcrumb.Item>
+            </Breadcrumb>
+
             </div>
 
             {classInfo ? (
                 <>
                     {/* Basic Info */}
-                    <Card title="Basic Info" style={{ marginBottom: 20 }} extra={<Button onClick={() => setIsUpdateModalOpen(true)}>Cập nhật</Button>}>
-                        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between" }}>
-                            <div style={{ flex: "1 1 45%" }}>
-                                <p><strong>Mã lớp:</strong> {classInfo.class_code}</p>
-                                <p><strong>Tên lớp:</strong> {classInfo.name}</p>
-                                <p><strong>Môn học:</strong> {classInfo.subject}</p>
-                                <p><strong>Giảng viên:</strong> {classInfo.teacher_name || "Chưa phân công"}</p>
-                                
-                            </div>
-                            <div style={{ flex: "1 1 45%" }}>
-                                <p><strong>Trạng thái:</strong> {classInfo.status}</p>
-                                <p><strong>Số lượng học sinh:</strong> {students.length}</p>
-                            </div>
-                        </div>
-                    </Card>
+                    <Row gutter={16} style={{ marginBottom: 20 }}>
+                        {/* Basic Info */}
+                        <Col span={18}>
+                            <Card
+                                title="Basic Info"
+                                style={{ marginBottom: 20 }}
+                                extra={currentUserRole === 'manager' && <Button onClick={() => setIsUpdateModalOpen(true)}>Cập nhật</Button>}
+                            >
+                                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between" }}>
+                                    <div style={{ flex: "1 1 45%" }}>
+                                        <p><strong>Mã lớp:</strong> {classInfo.class_code}</p>
+                                        <p><strong>Tên lớp:</strong> {classInfo.name}</p>
+                                        <p><strong>Môn học:</strong> {classInfo.subject}</p>
+                                        <p><strong>Giảng viên:</strong> {classInfo.teacher_name || "Chưa phân công"}</p>
+                                    </div>
+                                    <div style={{ flex: "1 1 45%" }}>
+                                        <p><strong>Trạng thái:</strong> <span style={{
+                                            color:
+                                                    classInfo.status === "Active"
+                                                    ? "green"
+                                                    : classInfo.status === "Planning"
+                                                    ? "rgb(230,178,67)"
+                                                    : classInfo.status === "Closed"
+                                                    ? "red"
+                                                    : "rgb(85,127,213)",
+                                            fontWeight: "bold",
+                                            border: "2px solid",
+                                            padding: "0.15rem 0.5rem",
+                                            borderRadius: "5px",
+                                            backgroundColor: "rgba(255,255,255,0.8)",
+                                        }}>{classInfo.status}</span> </p>
+                                        <p><strong>Số lượng học sinh:</strong> {students.length}</p>
+                                    </div>
+                                </div>
+                            </Card>
+                        </Col>
+
+                        {/* Progress (Tiến độ học tập) */}
+                        <Col span={6}>
+                            <Card
+                                style={{
+                                    borderRadius: "10px",
+                                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                                    backgroundColor: "#fff",
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Title level={4}>Tiến độ lớp học</Title>
+                                <Progress
+                                    type="circle"
+                                    percent={calculateProgress()}
+                                    width={150}
+                                    strokeColor={{
+                                        // '0%': '#108ee9',
+                                        // '100%': '#87d068',
+                                        '0%': 'rgb(155,254,254)',
+                                        '25%': 'rgb(104,209,253)',
+                                        '50%': 'rgb(69,140,252)',
+                                        '75%': 'rgb(68,27,251)',
+                                        '100%': 'rgb(68,19,137)',
+                                    }}
+                                    format={renderProgress}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
 
                     {/* Calendar Info */}
                     <Card title="Calendar Info" style={{ marginBottom: 20 }}>
@@ -352,7 +424,7 @@ const ClassDetail = () => {
                             />
                         </TabPane>
                         <TabPane tab="Danh sách học sinh" key="2">
-                            <Button type="primary" onClick={() => { fetchAllStudents(); setIsEnrollModalOpen(true); }}>
+                            <Button type="primary" onClick={() => { fetchAllStudents(); setIsEnrollModalOpen(true); }} style={{ display: currentUserRole === 'manager' ? 'block' : 'none' }}>
                                 Enroll học sinh
                             </Button>
                             <Table

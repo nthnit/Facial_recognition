@@ -145,6 +145,7 @@ const TopNavbar = ({ collapsed }) => {
         <Header
             style={{
                 background: "#00aeef",
+                backgroundImage: "linear-gradient(to right,rgb(104,209,253),rgb(69,140,252))",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
