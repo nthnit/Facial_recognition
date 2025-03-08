@@ -82,7 +82,7 @@ const AssignTeaching = () => {
             if (!headers) return;
 
             await axios.put(
-                `${API_BASE_URL}/classes/${classId}`,
+                `${API_BASE_URL}/classes/${classId}/assign`,
                 { teacher_id: teacherId },
                 { headers }
             );

@@ -671,3 +671,43 @@ def search_classes(
             result.weekly_schedule = [int(day) for day in result.weekly_schedule.split(",")]
 
     return results
+
+# API PUT để phân công giáo viên cho lớp học
+@router.put("/{class_id}/assign", response_model=ClassUpdate)
+def assign_teacher_to_class(
+    class_id: int,
+    class_data: ClassUpdate,  # Thêm schema ClassUpdate để nhận thông tin từ body
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # Kiểm tra quyền người dùng (admin/manager)
+):
+    # Kiểm tra quyền hạn người dùng
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền phân công giảng viên cho lớp học")
+
+    # Lấy thông tin lớp học từ database
+    class_obj = db.query(Class).filter(Class.id == class_id).first()
+    if not class_obj:
+        raise HTTPException(status_code=404, detail="Lớp học không tồn tại")
+
+    # Lấy teacher_id từ body
+    teacher_id = class_data.teacher_id
+
+    # Cập nhật thông tin giáo viên cho lớp học
+    class_obj.teacher_id = teacher_id  # Gán teacher_id cho lớp học
+
+    # Lưu thay đổi vào database
+    db.commit()
+    db.refresh(class_obj)
+
+    # Trả về thông tin lớp học sau khi cập nhật
+    return {
+        "id": class_obj.id,
+        "name": class_obj.name,
+        "class_code": class_obj.class_code,
+        "teacher_id": class_obj.teacher_id,
+        "status": class_obj.status,
+        "subject": class_obj.subject,
+        "start_date": class_obj.start_date,
+        "end_date": class_obj.end_date
+    }
+
