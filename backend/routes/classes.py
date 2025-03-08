@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import outerjoin
 from database import get_db
 from models.class_model import Class
+from models.schedule_model import Schedule
 from models.student_model import Student
 from models.class_students_model import ClassStudent
 from models.user import User
@@ -106,6 +107,7 @@ def get_class_detail(
 
 
 # 🟢 API THÊM MỚI LỚP HỌC
+# 🟢 API Tạo Mới Lớp Học
 @router.post("", response_model=ClassResponse)
 def create_class(
     class_data: ClassCreate,
@@ -126,6 +128,7 @@ def create_class(
     sessions_count = 0
     session_dates = []
 
+    # Tạo danh sách ngày học trong tuần
     while sessions_count < total_sessions:
         if current_date.weekday() in weekly_schedule:  # Nếu ngày hiện tại thuộc lịch học
             session_dates.append(current_date)  # Lưu lại ngày của session
@@ -154,22 +157,53 @@ def create_class(
     db.commit()
     db.refresh(new_class)
 
-    # 🔹 Tạo sessions tự động
+    # 🔹 Tạo sessions tự động và lưu vào bảng SessionModel
     session_objects = []
-    default_start_time = time(8, 0)  # Giờ bắt đầu mặc định: 08:00 AM
-    default_end_time = time(10, 0)  # Giờ kết thúc mặc định: 10:00 AM
+    
+    # Tạo một dictionary lưu trữ giờ cho từng ngày trong tuần
+    day_times = {day: {'start': None, 'end': None} for day in weekly_schedule} 
 
-    for session_date in session_dates:
-        session_obj = SessionModel(
-            class_id=new_class.id,
-            date=session_date,
-            start_time=default_start_time,
-            end_time=default_end_time
-        )
-        session_objects.append(session_obj)
+    # Cập nhật giờ cho các ngày đã chọn
+    for i, day in enumerate(weekly_schedule):
+        if class_data.start_time and class_data.end_time:
+            day_times[day]['start'] = class_data.start_time[i]  # Lưu giờ bắt đầu cho từng ngày
+            day_times[day]['end'] = class_data.end_time[i]  # Lưu giờ kết thúc cho từng ngày
 
-    # Lưu sessions vào database
+    # Đảm bảo mỗi session của từng ngày học sẽ có giờ giống nhau
+    for i, session_date in enumerate(session_dates):
+        weekday = session_date.weekday()
+        
+        if weekday in day_times:  # Kiểm tra nếu ngày học có trong danh sách đã chọn
+            start_time = day_times[weekday]['start']
+            end_time = day_times[weekday]['end']
+            
+            if start_time and end_time:
+                # Tạo session mới với date chỉ lưu vào bảng sessions
+                session_obj = SessionModel(
+                    class_id=new_class.id,
+                    date=session_date,  # Date lưu vào bảng sessions
+                    start_time=start_time,
+                    end_time=end_time
+                )
+                session_objects.append(session_obj)
+
+    # Lưu sessions vào database (chỉ lưu vào bảng sessions)
     db.add_all(session_objects)
+    db.commit()
+
+    # 🔹 Lưu lịch học vào bảng schedules
+    schedule_objects = []
+    for day in weekly_schedule:
+        schedule_obj = Schedule(
+            class_id=new_class.id,
+            day_of_week=day,  # Lưu thứ trong tuần
+            start_time=day_times[day]['start'],
+            end_time=day_times[day]['end']
+        )
+        schedule_objects.append(schedule_obj)
+
+    # Lưu lịch học vào bảng schedules
+    db.add_all(schedule_objects)
     db.commit()
 
     return ClassResponse(
@@ -182,12 +216,14 @@ def create_class(
         subject=new_class.subject,
         status=new_class.status,
         class_code=new_class.class_code,
-        weekly_schedule=[int(day) for day in new_class.weekly_schedule.split(",")]
+        weekly_schedule=[int(day) for day in new_class.weekly_schedule.split(",")],
+        start_time=[day_times[day]['start'] for day in weekly_schedule],  # Trả về start_time cho từng weekday
+        end_time=[day_times[day]['end'] for day in weekly_schedule]  # Trả về end_time cho từng weekday
     )
 
-# 🟢 API CẬP NHẬT THÔNG TIN LỚP HỌC
 
 
+# 🟢 API Cập Nhật Thông Tin Lớp Học
 @router.put("/{class_id}", response_model=ClassResponse)
 def update_class(
     class_id: int,
@@ -232,28 +268,52 @@ def update_class(
 
         while sessions_count < total_sessions:
             if current_date.weekday() in weekly_schedule:
-                new_session = SessionModel(
-                    class_id=class_id,
-                    date=current_date,
-                    start_time="19:30",  # 🔹 Có thể sửa giờ học theo yêu cầu
-                    end_time="21:30"
-                )
-                session_list.append(new_session)
-                sessions_count += 1
-            current_date += timedelta(days=1)
+                day_of_week = current_date.weekday()  # Lấy thứ trong tuần (0 - 6)
 
-        # 🔹 Lưu các sessions mới vào database
+                # Lấy giờ bắt đầu và kết thúc từ frontend, sử dụng day_of_week để lấy đúng giờ
+                try:
+                    start_time = class_data.start_time[weekly_schedule.index(day_of_week)]  # Lấy giờ bắt đầu từ dữ liệu frontend
+                    end_time = class_data.end_time[weekly_schedule.index(day_of_week)]  # Lấy giờ kết thúc từ dữ liệu frontend
+                except IndexError:
+                    raise HTTPException(status_code=400, detail="Số lượng giờ bắt đầu hoặc kết thúc không khớp với số ngày học")
+                
+                if start_time and end_time:
+                    # Tạo session mới với ngày và giờ học
+                    new_session = SessionModel(
+                        class_id=class_id,
+                        date=current_date,
+                        start_time=start_time,
+                        end_time=end_time
+                    )
+                    session_list.append(new_session)
+                    sessions_count += 1
+            
+            current_date += timedelta(days=1)  # Tăng ngày lên 1 ngày
+
+        # Lưu các sessions mới vào database
         db.add_all(session_list)
+        db.commit()
 
-        # 🔹 Cập nhật `end_date` dựa trên session cuối cùng
-        if session_list:
-            class_obj.end_date = session_list[-1].date
+        # 🔹 Lưu lịch học vào bảng schedules
+        schedule_objects = []
+        for day in weekly_schedule:
+            schedule_obj = Schedule(
+                class_id=class_id,
+                day_of_week=day,  # Lưu thứ trong tuần
+                start_time=class_data.start_time[weekly_schedule.index(day)],
+                end_time=class_data.end_time[weekly_schedule.index(day)]
+            )
+            schedule_objects.append(schedule_obj)
 
-    # 🔹 Lưu thay đổi vào database
+        # Lưu lịch học vào bảng schedules
+        db.add_all(schedule_objects)
+        db.commit()
+
+    # Lưu thay đổi vào database
     db.commit()
     db.refresh(class_obj)
 
-    # ✅ Chuyển lại `weekly_schedule` thành List[int] khi trả về response
+    # ✅ Trả về thông tin lớp học đã cập nhật
     return ClassResponse(
         id=class_obj.id,
         name=class_obj.name,
@@ -264,8 +324,11 @@ def update_class(
         subject=class_obj.subject,
         status=class_obj.status,
         class_code=class_obj.class_code,
-        weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")]  # ✅ Chuyển chuỗi thành List[int]
+        weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")],
+        start_time=[class_data.start_time[weekly_schedule.index(day)] for day in weekly_schedule],
+        end_time=[class_data.end_time[weekly_schedule.index(day)] for day in weekly_schedule]
     )
+
 
 
 

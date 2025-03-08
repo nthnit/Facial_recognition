@@ -25,3 +25,5 @@ class Class(Base):
     attendances = relationship("Attendance", back_populates="class_", cascade="all, delete-orphan")
 
     sessions = relationship("Session", back_populates="class_obj", cascade="all, delete-orphan")
+    
+    schedules = relationship("Schedule", back_populates="class_info", cascade="all, delete-orphan")

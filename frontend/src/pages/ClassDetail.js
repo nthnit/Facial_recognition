@@ -25,6 +25,7 @@ const ClassDetail = () => {
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [currentSession, setCurrentSession] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [schdedule,setSchedule] = useState([]);
     const [form] = Form.useForm();
     const currentUserRole = localStorage.getItem("role");
 
@@ -42,6 +43,7 @@ const ClassDetail = () => {
         fetchClassDetail();
         fetchSessions();
         fetchStudents();
+        fetchLatestSchedule();
     }, [id]);
 
     const fetchClassDetail = async () => {
@@ -108,6 +110,19 @@ const ClassDetail = () => {
         const daysMap = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
         return schedule ? schedule.map(day => daysMap[day]).join(", ") : "Không có lịch học";
     };
+
+    const fetchLatestSchedule = async () => {
+        try {
+            const response = await axios.get(`http://127.0.0.1:8000/schedules/${id}/latest`, {
+                headers: getAuthHeaders(),
+            });
+            // Lưu lịch học vào state
+            setSchedule(response.data);
+        } catch (error) {
+            message.error("Lỗi khi tải lịch học gần nhất.");
+        }
+    };
+    
 
 
     const openAttendanceModal = async (session) => {
@@ -394,6 +409,45 @@ const ClassDetail = () => {
                             </div>
                         </div>
                     </Card>
+                    <Card title="Lịch học hàng tuần" style={{ marginBottom: 20 }}>
+                        <Table
+                            dataSource={schdedule || []} 
+                            columns={[
+                                {
+                                    title: "Ngày",
+                                    dataIndex: "day_of_week", 
+                                    key: "day_of_week",
+                                    render: (text) => {
+                                        const daysMap = [
+                                            "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"
+                                        ];
+                                        return daysMap[text];  // Dựa vào số ngày trong tuần (0 - 6)
+                                    },
+                                },
+                                {
+                                    title: "Giờ bắt đầu",
+                                    dataIndex: "start_time", 
+                                    key: "start_time",
+                                    render: (time) => {
+                                        return time ? moment(time, "HH:mm:ss").format("HH:mm") : "Invalid time"; 
+                                    },  // Chuyển đổi thời gian
+                                },
+                                {
+                                    title: "Giờ kết thúc",
+                                    dataIndex: "end_time",
+                                    key: "end_time",
+                                    render: (time) => {
+                                        return time ? moment(time, "HH:mm:ss").format("HH:mm") : "Invalid time"; 
+                                    }, 
+                                },
+                            ]}
+                            rowKey="day_of_week"  // Dùng "day_of_week" làm key cho mỗi dòng
+                            pagination={false}
+                            bordered
+                        />
+                    </Card>
+
+
 
                     <Tabs defaultActiveKey="1">
                         <TabPane tab="Danh sách buổi học" key="1">

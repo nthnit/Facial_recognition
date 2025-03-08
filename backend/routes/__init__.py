@@ -9,6 +9,7 @@ from routes.teacher import router as teacher_router
 from routes.news import router as news_router
 from routes.uploads import router as upload_router  # ✅ Thêm route của uploads
 from routes.attendance import router as attendance_router  # ✅ Thêm route của điểm danh
+from routes.schedules import router as schedule_router 
 
 # Khởi tạo router chính
 router = APIRouter()
@@ -24,3 +25,4 @@ router.include_router(teacher_router, prefix="/teachers", tags=["Teachers"])
 router.include_router(news_router, prefix="/news", tags=["News"])
 router.include_router(upload_router, prefix="/uploads", tags=["Uploads"])  # ✅ Thêm route upload ảnh
 router.include_router(attendance_router, prefix="/attendance", tags=["Attendance"])  # ✅ Thêm route điểm danh
+router.include_router(schedule_router, prefix="/schedules", tags=["Schedules"])

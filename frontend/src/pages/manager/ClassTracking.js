@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, Space, Modal, Form, message, DatePicker, Select } from "antd";
+import { Table, Button, Input, Space, Modal, Form, message, DatePicker, Select, TimePicker } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -20,6 +20,7 @@ const ClassTracking = () => {
     const [searchText, setSearchText] = useState("");
     const [form] = Form.useForm();
     const [weeklySchedule, setWeeklySchedule] = useState([]);
+    const [classTimes, setClassTimes] = useState({}); // Track selected times for each weekday
     const navigate = useNavigate();
 
     // Lấy token từ localStorage để gửi trong request
@@ -129,40 +130,86 @@ const ClassTracking = () => {
         );
     };
 
-    const handleOk = async () => {
-    try {
-        const values = await form.validateFields();
-        const payload = {
-            ...values,
-            start_date: values.start_date ? values.start_date.format("YYYY-MM-DD") : null,
-            total_sessions: Number(values.total_sessions),
-            teacher_id: values.teacher_id,
-            weekly_schedule: weeklySchedule.map(Number), // ✅ Chắc chắn gửi dạng List[int]
-        };
-
-        console.log("Sending payload:", payload); // ✅ Kiểm tra dữ liệu trước khi gửi
-
-        if (editingClass) {
-            await axios.put(`http://127.0.0.1:8000/classes/${editingClass.id}`, payload, {
-                headers: getAuthHeaders(),
-            });
-            message.success("Cập nhật lớp học thành công!");
+    const handleClassTimeChange = (day, timeType, timeValue) => {
+        console.log(`Day: ${day}, TimeType: ${timeType}, TimeValue: ${timeValue}`);  // Log giá trị time
+        
+        // Kiểm tra nếu timeValue là một đối tượng moment
+        if (timeValue && timeValue.isValid()) {
+            const hours = timeValue.hour();  // Lấy giờ
+            console.log('Hours:', hours);
+    
+            const minutes = timeValue.minute();  // Lấy phút
+            const formattedTime = `${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}`;  // Định dạng HH:mm
+            console.log(`Formatted Time: ${formattedTime}`);  // Kiểm tra giá trị đã được định dạng
+    
+            setClassTimes((prev) => ({
+                ...prev,
+                [day]: {
+                    ...prev[day],
+                    [timeType]: formattedTime,  // Lưu đúng giá trị giờ đã được định dạng
+                },
+            }));
         } else {
-            await axios.post("http://127.0.0.1:8000/classes", payload, {
-                headers: getAuthHeaders(),
-            });
-            message.success("Thêm lớp học thành công!");
+            console.log('Invalid time value');
         }
+    };
+    
 
-        fetchClasses();
-        setIsModalOpen(false);
-        form.resetFields();
-    } catch (error) {
-        console.error("Error response:", error.response?.data); // ✅ Log lỗi để kiểm tra
-        handleRequestError(error, "Lỗi khi lưu lớp học.");
-    }
-};
-
+    const handleOk = async () => {
+        try {
+            const values = await form.validateFields();
+            
+            // Tạo mảng start_time và end_time từ classTimes
+            const start_time = [];
+            const end_time = [];
+            console.log(weeklySchedule);
+            console.log(classTimes);
+            
+            // Lấy start_time và end_time từ classTimes cho các ngày trong weeklySchedule
+            weeklySchedule.forEach(day => {
+                if (classTimes[day]) {
+                    start_time.push(classTimes[day].start_time);
+                    end_time.push(classTimes[day].end_time);
+                }
+            });
+            
+    
+            const payload = {
+                ...values,
+                start_date: values.start_date ? values.start_date.format("YYYY-MM-DD") : null,
+                total_sessions: Number(values.total_sessions),
+                teacher_id: values.teacher_id,
+                weekly_schedule: weeklySchedule.map(Number), // Dữ liệu lịch học
+                start_time: start_time,  // Gửi mảng start_time
+                end_time: end_time,      // Gửi mảng end_time
+            };
+    
+            console.log("Sending payload:", payload); // Kiểm tra dữ liệu trước khi gửi
+    
+            if (editingClass) {
+                await axios.put(`http://127.0.0.1:8000/classes/${editingClass.id}`, payload, {
+                    headers: getAuthHeaders(),
+                });
+                message.success("Cập nhật lớp học thành công!");
+            } else {
+                await axios.post("http://127.0.0.1:8000/classes", payload, {
+                    headers: getAuthHeaders(),
+                });
+                message.success("Thêm lớp học thành công!");
+            }
+    
+            fetchClasses();
+            setIsModalOpen(false);
+            form.resetFields();
+        } catch (error) {
+            console.error("Error response:", error.response?.data); // Kiểm tra lỗi
+            handleRequestError(error, "Lỗi khi lưu lớp học.");
+        }
+    };
+    
+    
+    
+    
 
     const handleDelete = async (id) => {
         Modal.confirm({
@@ -242,10 +289,6 @@ const ClassTracking = () => {
                         </Select>
                     </Form.Item>
 
-                    <Form.Item label="Mô tả" name="description">
-                        <Input.TextArea />
-                    </Form.Item>
-
                     <Form.Item label="Môn học" name="subject" rules={[{ required: true, message: "Vui lòng nhập môn học!" }]}>
                         <Input />
                     </Form.Item>
@@ -275,6 +318,29 @@ const ClassTracking = () => {
                             <Option value={6}>Chủ Nhật</Option>
                         </Select>
                     </Form.Item>
+
+                    {/* Time picker cho mỗi ngày học */}
+                    {weeklySchedule.map((day) => (
+                        <div key={day}>
+                            <h4>{`Thứ ${day + 2}`}</h4>
+                            <Form.Item label="Giờ bắt đầu" name={`start_time_${day}`}>
+                                <TimePicker
+                                    format="HH:mm"
+                                    value={classTimes[day]?.start_time ? moment(classTimes[day]?.start_time, "HH:mm") : null}
+                                    onChange={(time) => handleClassTimeChange(day, "start_time", time)}
+                                />
+                            </Form.Item>
+
+                            <Form.Item label="Giờ kết thúc" name={`end_time_${day}`}>
+                                <TimePicker
+                                    format="HH:mm"
+                                    value={classTimes[day]?.end_time ? moment(classTimes[day]?.end_time, "HH:mm") : null}
+                                    onChange={(time) => handleClassTimeChange(day, "end_time", time)}
+                                />
+                            </Form.Item>
+
+                        </div>
+                    ))}
                 </Form>
             </Modal>
         </div>
