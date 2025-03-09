@@ -9,12 +9,18 @@ router = APIRouter()
 
 # API lấy danh sách phòng học
 @router.get("/", response_model=List[RoomResponse])
-async def get_rooms(db: Session = Depends(get_db)):
-    rooms = db.query(Room).all()
-    if not rooms:
-        raise HTTPException(status_code=404, detail="No rooms found")
+async def get_rooms(status: str = None, db: Session = Depends(get_db)):
+    # Nếu có tham số `status` là 'active', chỉ lấy các phòng học có trạng thái 'Active'
+    if status and status.lower() == "active":
+        active_rooms = db.query(Room).filter(Room.status == "Active").all()
+        if not active_rooms:
+            raise HTTPException(status_code=404, detail="Không có phòng học nào có trạng thái 'Active'")
+        return [RoomResponse.from_orm(room) for room in active_rooms]
     
+    # Nếu không có tham số `status`, trả về tất cả phòng học
+    rooms = db.query(Room).all()
     return [RoomResponse.from_orm(room) for room in rooms]
+
 
 
 # API lấy chi tiết phòng học theo ID
@@ -89,3 +95,5 @@ def change_room_status(room_id: int, body: ChangeRoomStatusRequest, db: Session 
     db.refresh(room)
     
     return room
+
+
