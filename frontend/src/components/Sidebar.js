@@ -43,6 +43,7 @@ const Sidebar = ({ collapsed, onCollapse }) => {
             { key: "/manager/assign", icon: <SolutionOutlined />, label: "Phân công giảng viên" },
             { key: "/manager/news", icon: <DashboardOutlined />, label: "Cập nhật tin tức" },
             { key: "/manager/classes", icon: <BookOutlined />, label: "Theo dõi lớp học" },
+            { key: "/manager/rooms", icon: <BookOutlined />, label: "Quản lý phòng học" },
             { key: "/profile", icon: <UserOutlined />, label: "Hồ sơ cá nhân" },
         ],
         teacher: [

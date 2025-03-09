@@ -21,6 +21,9 @@ const ClassTracking = () => {
     const [form] = Form.useForm();
     const [weeklySchedule, setWeeklySchedule] = useState([]);
     const [classTimes, setClassTimes] = useState({}); // Track selected times for each weekday
+    const [rooms, setRooms] = useState([]); // Danh sách phòng học
+    const [roomSelection, setRoomSelection] = useState({}); // Track selected rooms for each weekday
+
     const navigate = useNavigate();
 
     // Lấy token từ localStorage để gửi trong request
@@ -37,7 +40,28 @@ const ClassTracking = () => {
     useEffect(() => {
         fetchClasses();
         fetchTeachers();
+        fetchRooms(); 
     }, []);
+
+    const fetchRooms = async () => {
+        try {
+          const response = await axios.get("http://127.0.0.1:8000/rooms", {
+            headers: getAuthHeaders(),
+          });
+          setRooms(response.data);
+        } catch (error) {
+          handleRequestError(error, "Lỗi khi tải danh sách phòng học.");
+        }
+    };
+    
+    const handleRoomChange = (day, roomId) => {
+        setRoomSelection((prev) => ({
+          ...prev,
+          [day]: roomId, // Update room selection for the specific day
+        }));
+      };
+      
+      
 
     const fetchClasses = async () => {
         setLoading(true);
@@ -120,15 +144,18 @@ const ClassTracking = () => {
         setEditingClass(classData);
         setIsModalOpen(true);
         form.setFieldsValue(
-            classData
-                ? {
-                      ...classData,
-                      start_date: classData.start_date ? moment(classData.start_date) : null,
-                      end_date: classData.end_date ? moment(classData.end_date) : null,
-                  }
-                : { class_code: "", name: "", teacher_id: "", start_date: null, end_date: null, total_sessions: "", subject: "", status: "" }
+          classData
+            ? {
+                ...classData,
+                start_date: classData.start_date ? moment(classData.start_date) : null,
+                end_date: classData.end_date ? moment(classData.end_date) : null,
+                // Giới thiệu logic phòng học cho từng ngày
+                roomSelection: classData.room_selection || {},  // Gán room_selection vào form
+              }
+            : { class_code: "", name: "", teacher_id: "", start_date: null, end_date: null, total_sessions: "", subject: "", status: "" }
         );
-    };
+      };
+      
 
     const handleClassTimeChange = (day, timeType, timeValue) => {
         console.log(`Day: ${day}, TimeType: ${timeType}, TimeValue: ${timeValue}`);  // Log giá trị time
@@ -159,20 +186,18 @@ const ClassTracking = () => {
         try {
             const values = await form.validateFields();
             
-            // Tạo mảng start_time và end_time từ classTimes
+            // Tạo mảng start_time, end_time và room_ids từ classTimes
             const start_time = [];
             const end_time = [];
-            console.log(weeklySchedule);
-            console.log(classTimes);
-            
-            // Lấy start_time và end_time từ classTimes cho các ngày trong weeklySchedule
+            const room_ids = []; // Mảng lưu room_ids cho mỗi ngày trong lịch
+    
             weeklySchedule.forEach(day => {
                 if (classTimes[day]) {
                     start_time.push(classTimes[day].start_time);
                     end_time.push(classTimes[day].end_time);
+                    room_ids.push(values[`room_id_${day}`]);  // Lưu room_id cho mỗi ngày
                 }
             });
-            
     
             const payload = {
                 ...values,
@@ -182,6 +207,7 @@ const ClassTracking = () => {
                 weekly_schedule: weeklySchedule.map(Number), // Dữ liệu lịch học
                 start_time: start_time,  // Gửi mảng start_time
                 end_time: end_time,      // Gửi mảng end_time
+                room_ids: room_ids      // Gửi mảng room_ids cho từng buổi học
             };
     
             console.log("Sending payload:", payload); // Kiểm tra dữ liệu trước khi gửi
@@ -206,6 +232,7 @@ const ClassTracking = () => {
             handleRequestError(error, "Lỗi khi lưu lớp học.");
         }
     };
+    
     
     
     
@@ -338,9 +365,24 @@ const ClassTracking = () => {
                                     onChange={(time) => handleClassTimeChange(day, "end_time", time)}
                                 />
                             </Form.Item>
+                            <Form.Item label="Phòng học" name={`room_id_${day}`}>
+                            <Select
+                                value={roomSelection[day]}
+                                onChange={(value) => handleRoomChange(day, value)}
+                                placeholder="Chọn phòng học"
+                            >
+                                {rooms.map((room) => (
+                                <Select.Option key={room.id} value={room.id}>
+                                    {room.room_name}
+                                </Select.Option>
+                                ))}
+                            </Select>
+                            </Form.Item>
+
 
                         </div>
                     ))}
+                    
                 </Form>
             </Modal>
         </div>

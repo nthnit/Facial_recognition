@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from models.schedule_model import Schedule
+from models.room_model import Room
 from schemas.schedule_schema import ScheduleResponse  # Sử dụng schema tương ứng với bảng schedules
 from database import get_db
 from typing import List
@@ -41,9 +42,9 @@ def get_latest_class_schedule(class_id: int, db: Session = Depends(get_db)):
     latest_schedules = db.query(Schedule).filter(
         Schedule.class_id == class_id,
         Schedule.created_at == latest_schedule.created_at
-    ).all()
+    ).join(Room, Room.id == Schedule.room_id).all()  # Join với bảng Room để lấy thông tin phòng học
 
-    # Chuyển start_time và end_time thành chuỗi HH:MM cho tất cả các bản ghi
+    # Chuyển start_time và end_time thành chuỗi HH:MM cho tất cả các bản ghi và thêm tên phòng học
     schedule_list = []
     for schedule in latest_schedules:
         start_time_str = schedule.start_time.strftime("%H:%M") if schedule.start_time else None
@@ -54,10 +55,11 @@ def get_latest_class_schedule(class_id: int, db: Session = Depends(get_db)):
             "day_of_week": schedule.day_of_week,
             "start_time": start_time_str,
             "end_time": end_time_str,
-            "created_at": schedule.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            "created_at": schedule.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "room_name": schedule.room.room_name  # Trả về tên phòng học
         })
 
-    # Trả về danh sách lịch học
     return schedule_list
+
 
 

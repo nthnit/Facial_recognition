@@ -16,6 +16,7 @@ class SessionResponse(BaseModel):
     total_students: int
     attendance_rate: float
     students: List[SessionStudent]
+    room_name: Optional[str] = ""
 
 class StudentSessionResponse(BaseModel):
     session_id: int

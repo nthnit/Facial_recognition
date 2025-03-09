@@ -5,6 +5,7 @@ from database import get_db
 from models.class_model import Class
 from models.schedule_model import Schedule
 from models.student_model import Student
+from models.room_model import Room
 from models.class_students_model import ClassStudent
 from models.user import User
 from models.attendance_model import Attendance
@@ -114,33 +115,27 @@ def create_class(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    print("Received payload:", class_data.dict())
-
     if current_user.role not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền thêm lớp học")
 
-    # Tính toán ngày kết thúc dựa trên số buổi học
     start_date = class_data.start_date
     total_sessions = class_data.total_sessions
-    weekly_schedule = class_data.weekly_schedule  # Danh sách các thứ học trong tuần, ví dụ: [0, 2, 4]
+    weekly_schedule = class_data.weekly_schedule
 
     current_date = start_date
     sessions_count = 0
     session_dates = []
 
-    # Tạo danh sách ngày học trong tuần
     while sessions_count < total_sessions:
-        if current_date.weekday() in weekly_schedule:  # Nếu ngày hiện tại thuộc lịch học
-            session_dates.append(current_date)  # Lưu lại ngày của session
+        if current_date.weekday() in weekly_schedule:
+            session_dates.append(current_date)
             sessions_count += 1
         current_date += timedelta(days=1)
 
-    end_date = session_dates[-1] if session_dates else start_date  # Ngày kết thúc là ngày học cuối cùng
+    end_date = session_dates[-1] if session_dates else start_date
 
-    # Tạo mã lớp học tự động
     new_class_code = f"CLASS{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
-    # Tạo lớp học mới
     new_class = Class(
         name=class_data.name,
         teacher_id=class_data.teacher_id,
@@ -157,52 +152,48 @@ def create_class(
     db.commit()
     db.refresh(new_class)
 
-    # 🔹 Tạo sessions tự động và lưu vào bảng SessionModel
     session_objects = []
-    
-    # Tạo một dictionary lưu trữ giờ cho từng ngày trong tuần
-    day_times = {day: {'start': None, 'end': None} for day in weekly_schedule} 
+    schedule_objects = []
 
-    # Cập nhật giờ cho các ngày đã chọn
+    day_times = {day: {'start': None, 'end': None, 'room': None} for day in weekly_schedule}
+
     for i, day in enumerate(weekly_schedule):
-        if class_data.start_time and class_data.end_time:
-            day_times[day]['start'] = class_data.start_time[i]  # Lưu giờ bắt đầu cho từng ngày
-            day_times[day]['end'] = class_data.end_time[i]  # Lưu giờ kết thúc cho từng ngày
+        if class_data.start_time and class_data.end_time and class_data.room_ids:
+            day_times[day]['start'] = class_data.start_time[i]
+            day_times[day]['end'] = class_data.end_time[i]
+            day_times[day]['room'] = class_data.room_ids[i]
 
-    # Đảm bảo mỗi session của từng ngày học sẽ có giờ giống nhau
     for i, session_date in enumerate(session_dates):
         weekday = session_date.weekday()
-        
-        if weekday in day_times:  # Kiểm tra nếu ngày học có trong danh sách đã chọn
+
+        if weekday in day_times:
             start_time = day_times[weekday]['start']
             end_time = day_times[weekday]['end']
-            
-            if start_time and end_time:
-                # Tạo session mới với date chỉ lưu vào bảng sessions
+            room_id = day_times[weekday]['room']
+
+            if start_time and end_time and room_id:
                 session_obj = SessionModel(
                     class_id=new_class.id,
-                    date=session_date,  # Date lưu vào bảng sessions
+                    date=session_date,
                     start_time=start_time,
-                    end_time=end_time
+                    end_time=end_time,
+                    room_id=room_id  # Lưu phòng học cho buổi học
                 )
                 session_objects.append(session_obj)
 
-    # Lưu sessions vào database (chỉ lưu vào bảng sessions)
     db.add_all(session_objects)
     db.commit()
 
-    # 🔹 Lưu lịch học vào bảng schedules
-    schedule_objects = []
     for day in weekly_schedule:
         schedule_obj = Schedule(
             class_id=new_class.id,
-            day_of_week=day,  # Lưu thứ trong tuần
+            day_of_week=day,
             start_time=day_times[day]['start'],
-            end_time=day_times[day]['end']
+            end_time=day_times[day]['end'],
+            room_id=day_times[day]['room']  # Lưu phòng học cho lịch học
         )
         schedule_objects.append(schedule_obj)
 
-    # Lưu lịch học vào bảng schedules
     db.add_all(schedule_objects)
     db.commit()
 
@@ -217,8 +208,9 @@ def create_class(
         status=new_class.status,
         class_code=new_class.class_code,
         weekly_schedule=[int(day) for day in new_class.weekly_schedule.split(",")],
-        start_time=[day_times[day]['start'] for day in weekly_schedule],  # Trả về start_time cho từng weekday
-        end_time=[day_times[day]['end'] for day in weekly_schedule]  # Trả về end_time cho từng weekday
+        start_time=[day_times[day]['start'] for day in weekly_schedule],
+        end_time=[day_times[day]['end'] for day in weekly_schedule],
+        room_ids=[day_times[day]['room'] for day in weekly_schedule]  # Trả về room_ids cho từng ngày
     )
 
 
@@ -459,16 +451,17 @@ def get_class_sessions(
     if not class_obj:
         raise HTTPException(status_code=404, detail="Lớp học không tồn tại")
 
-    # Truy vấn danh sách sessions từ bảng `sessions`
+    # Truy vấn danh sách sessions từ bảng `sessions` và join với bảng `Room` để lấy tên phòng học
     sessions = (
-        db.query(SessionModel)
+        db.query(SessionModel, Room.room_name)
+        .join(Room, Room.id == SessionModel.room_id)  # Join với bảng Room để lấy room_name
         .filter(SessionModel.class_id == class_id)
         .order_by(SessionModel.date)
         .all()
     )
 
     session_list = []
-    for index, session in enumerate(sessions, start=1):
+    for index, (session, room_name) in enumerate(sessions, start=1):
         # Lấy danh sách học sinh của lớp
         students = (
             db.query(Student)
@@ -490,7 +483,7 @@ def get_class_sessions(
             if students else 0
         )
 
-        # Thêm session vào danh sách trả về (bao gồm `session_id`)
+        # Thêm session vào danh sách trả về (bao gồm `session_id` và `room_name`)
         session_list.append({
             "session_id": session.id,  # ✅ Thêm session_id vào response
             "session_number": index,
@@ -501,9 +494,11 @@ def get_class_sessions(
             "total_students": len(students),
             "attendance_rate": round(attendance_rate * 100, 2),
             "students": [{"id": s.id, "full_name": s.full_name} for s in students],
+            "room_name": room_name  # Thêm tên phòng học vào kết quả
         })
 
     return session_list
+
 
 
 # API: Cập nhật điểm danh cho một buổi học

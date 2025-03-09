@@ -11,6 +11,7 @@ const roleRoutes = {
         "/manager/assign",
         "/manager/news",
         "/manager/classes",
+        "/manager/rooms",
         "/profile",
         "/manager/teachers",
         "/face-attendance", // Thêm route FaceAttendance cho manager

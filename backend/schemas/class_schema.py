@@ -14,6 +14,7 @@ class ClassCreate(BaseModel):
     # Thêm các trường start_time và end_time cho các buổi học
     start_time: Optional[List[time]] = None  # Danh sách giờ bắt đầu cho từng buổi học
     end_time: Optional[List[time]] = None    # Danh sách giờ kết thúc cho từng buổi học
+    room_ids: Optional[List[Optional[int]]] = None
 
 # Schema để cập nhật lớp học
 class ClassUpdate(BaseModel):

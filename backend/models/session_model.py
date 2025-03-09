@@ -10,9 +10,12 @@ class Session(Base):
     date = Column(Date, nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
 
     # Quan hệ với lớp học
     class_obj = relationship("Class", back_populates="sessions")
     
     # Quan hệ với bảng Attendance
     attendances = relationship("Attendance", back_populates="session", cascade="all, delete-orphan")
+    
+    room = relationship("Room", back_populates="sessions")

@@ -16,6 +16,7 @@ class ScheduleResponse(BaseModel):
     start_time: str
     end_time: str
     created_at: str 
+    room_name: Optional[str] = None  # Thêm trư��ng tên phòng học nếu có
 
     class Config:
         orm_mode = True

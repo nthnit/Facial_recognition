@@ -24,6 +24,7 @@ import StudentManagement from "./pages/manager/StudentManagement";
 import NewsManagement from "./pages/manager/NewsManagement";
 import ClassTracking from "./pages/manager/ClassTracking";
 import TeacherManagement from "./pages/manager/TeacherManagement";
+import RoomManagement from "./pages/manager/RoomManagement";
 
 // Teacher Pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
@@ -52,6 +53,7 @@ const AppRoutes = () => {
                         <Route path="manager/assign" element={<AssignTeaching />} />
                         <Route path="manager/news" element={<NewsManagement />} />
                         <Route path="manager/classes" element={<ClassTracking />} />
+                        <Route path="manager/rooms" element={<RoomManagement />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="manager/teachers" element={<TeacherManagement />} />
                         <Route path="manager/students/:id" element={<StudentDetail />} />

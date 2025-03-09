@@ -440,6 +440,12 @@ const ClassDetail = () => {
                                         return time ? moment(time, "HH:mm:ss").format("HH:mm") : "Invalid time"; 
                                     }, 
                                 },
+                                {
+                                    title: "Phòng học",
+                                    dataIndex: "room_name",
+                                    key: "room_name",
+                                    
+                                },
                             ]}
                             rowKey="day_of_week"  // Dùng "day_of_week" làm key cho mỗi dòng
                             pagination={false}
@@ -460,6 +466,7 @@ const ClassDetail = () => {
                                     { title: "Mã buổi học", dataIndex: "session_id", key: "session_id" },
                                     { title: "Ngày học", dataIndex: "date", key: "date", render: (date) => moment(date).format("DD-MM-YYYY") },
                                     { title: "Thứ", dataIndex: "weekday", key: "weekday" },
+                                    { title: "Phòng học", dataIndex: "room_name", key: "room_name" },
                                     { title: "Giờ bắt đầu", dataIndex: "start_time", key: "start_time" },
                                     { title: "Giờ kết thúc", dataIndex: "end_time", key: "end_time" },
                                     { title: "Số học sinh", dataIndex: "total_students", key: "total_students" },

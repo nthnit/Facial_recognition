@@ -12,9 +12,12 @@ class Schedule(Base):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)  # Thêm created_at để phân biệt bản ghi
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
 
     # Relationship to Class
     class_info = relationship("Class", back_populates="schedules")
+    
+    room = relationship("Room", back_populates="schedules")
 
     def __repr__(self):
         return f"<Schedule(class_id={self.class_id}, day_of_week={self.day_of_week}, start_time={self.start_time}, end_time={self.end_time})>"
