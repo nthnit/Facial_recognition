@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination, Button } from "antd";
+import React, { useEffect, useState } from "react";
+import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination, Button, Carousel } from "antd";
 import usePageTitle from "../common/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -16,6 +16,7 @@ const TeacherDashboard = () => {
     const [upcomingClasses, setUpcomingClasses] = useState([]);
     const [pastClasses, setPastClasses] = useState([]);
     const [news, setNews] = useState([]);
+    const [banners, setBanners] = useState([]);  // State for banners
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại cho phần tin tức
     const [pageSize] = useState(4); // Số tin tức hiển thị mỗi trang
@@ -68,9 +69,23 @@ const TeacherDashboard = () => {
         }
     };
 
+    // Fetch active banners
+    const fetchBanners = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await axios.get(`${API_BASE_URL}/banners?status=active`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setBanners(response.data);
+        } catch (error) {
+            console.error("Lỗi khi tải banner:", error);
+        }
+    };
+
     useEffect(() => {
         fetchClassesData();
         fetchNews();
+        fetchBanners();  // Fetch banners on dashboard load
     }, []);
 
     // Hàm nhóm các lớp theo ngày
@@ -143,11 +158,26 @@ const TeacherDashboard = () => {
     return (
         <div style={{ padding: 20 }}>
             <h2>Xin chào,</h2>
-            {/* Banner */}
-            <Card style={{ marginBottom: 20, textAlign: "center" }}>
-                <Title level={2}>Chào mừng đến với hệ thống quản lý giảng dạy</Title>
-                <p>Hệ thống hỗ trợ giảng viên quản lý lớp học hiệu quả.</p>
-            </Card>
+            
+            {/* Banner Carousel */}
+            {banners.length > 0 && (
+                <Carousel 
+                    autoplay={{ dotDuration: true }} 
+                    style={{ marginBottom: "20px" }}
+                    autoplaySpeed={10000}
+                    arrows
+                >
+                    {banners.map((banner) => (
+                        <div key={banner.id}>
+                            <img
+                                src={banner.image_url}
+                                alt="Banner"
+                                style={{width: "90%", borderRadius: "10px", objectFit: "cover", overflow: "hidden", aspectRatio:"4/1", marginLeft:"auto", marginRight:"auto"  }}
+                            />
+                        </div>
+                    ))}
+                </Carousel>
+            )}
 
             <Row gutter={16}>
                 <Col span={16}>
@@ -206,7 +236,7 @@ const TeacherDashboard = () => {
                         <List
                             dataSource={paginatedNews}
                             renderItem={(item) => (
-                                <List.Item >
+                                <List.Item>
                                     <Row gutter={16}>
                                         <Col span={6}>
                                             <img
@@ -216,19 +246,18 @@ const TeacherDashboard = () => {
                                             />
                                         </Col>
                                         <Col span={18}>
-                                        <Text 
-                                            strong 
-                                            onClick={() => handleNewsClick(item.id)} 
-                                            style={{ 
-                                                cursor: "pointer", 
-                                                textDecoration: "none" 
-                                            }} 
-                                            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'} // Khi hover
-                                            onMouseLeave={(e) => e.target.style.textDecoration = 'none'} // Khi không hover
-                                        >
-                                            {item.title}
-                                        </Text>
-
+                                            <Text
+                                                strong
+                                                onClick={() => handleNewsClick(item.id)}
+                                                style={{
+                                                    cursor: "pointer",
+                                                    textDecoration: "none",
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                                            >
+                                                {item.title}
+                                            </Text>
                                             <p>{item.content.slice(0, 100)}...</p>
                                             <Text type="secondary">Ngày đăng: {new Date(item.created_at).toLocaleDateString()}</Text>
                                         </Col>

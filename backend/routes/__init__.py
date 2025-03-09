@@ -11,6 +11,7 @@ from routes.uploads import router as upload_router  # ✅ Thêm route của uplo
 from routes.attendance import router as attendance_router  # ✅ Thêm route của điểm danh
 from routes.schedules import router as schedule_router 
 from routes.rooms import router as room_router 
+from routes.banners import router as banner_router 
 
 # Khởi tạo router chính
 router = APIRouter()
@@ -28,3 +29,4 @@ router.include_router(upload_router, prefix="/uploads", tags=["Uploads"])  # ✅
 router.include_router(attendance_router, prefix="/attendance", tags=["Attendance"])  # ✅ Thêm route điểm danh
 router.include_router(schedule_router, prefix="/schedules", tags=["Schedules"])
 router.include_router(room_router, prefix="/rooms", tags=["Rooms"])
+router.include_router(banner_router, prefix="/banners", tags=["Banners"])
