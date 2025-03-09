@@ -638,7 +638,6 @@ def get_teacher_schedule(db: Session = Depends(get_db), current_user: User = Dep
             "class_id": session.class_id,  # ID của lớp học
             "class_name": session.class_obj.name,  # Tên lớp học
             "teacher_name": session.class_obj.teacher.full_name,  # Tên giáo viên
-            # "topic": session.class_obj.topic,  # Chủ đề lớp học
             "date": session.date.strftime("%Y-%m-%d"),  # Ngày học
             "start_time": session.start_time.strftime("%H:%M"),  # Thời gian bắt đầu
             "end_time": session.end_time.strftime("%H:%M"),  # Thời gian kết thúc

@@ -11,6 +11,7 @@ import StudentDetail from "./pages/StudentDetail";
 import ClassDetail from "./pages/ClassDetail"; // ✅ Import trang thông tin chi tiết lớp học
 import FaceAttendance from "./components/FaceAttendance";
 import NewsDetail from "./pages/NewsDetail"; 
+import TeacherDetail from "./pages/TeacherDetail"; 
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
@@ -55,6 +56,8 @@ const AppRoutes = () => {
                         <Route path="manager/teachers" element={<TeacherManagement />} />
                         <Route path="manager/students/:id" element={<StudentDetail />} />
                         <Route path="manager/classes/:id" element={<ClassDetail />} />
+                        <Route path="manager/teachers/:id" element={<TeacherDetail />} />
+
 
                         {/* 📌 Routes cho Giảng viên */}
                         <Route path="teacher/dashboard" element={<TeacherDashboard />} />
@@ -63,6 +66,7 @@ const AppRoutes = () => {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="teacher/students/:id" element={<StudentDetail />} />
                         <Route path="teacher/classes/:id" element={<ClassDetail />} />
+
                         <Route path="/news/:id" element={<NewsDetail />} />
 
                         {/* 📌 Route cho điểm danh khuôn mặt (chỉ cho teacher và manager) */}

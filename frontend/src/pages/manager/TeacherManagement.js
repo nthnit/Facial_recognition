@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker } from "antd";
+import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker, Select } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileExcelOutlined } from "@ant-design/icons";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
@@ -102,7 +102,7 @@ const TeacherManagement = () => {
         form.setFieldsValue(
             teacher
                 ? { ...teacher, date_of_birth: teacher.date_of_birth ? moment(teacher.date_of_birth) : null }
-                : { full_name: "", email: "", phone_number: "", date_of_birth: null }
+                : { full_name: "", email: "", phone_number: "", date_of_birth: null, address: "", gender: "male" }
         );
     };
 
@@ -148,6 +148,7 @@ const TeacherManagement = () => {
     };
 
     const columns = [
+        { title: "ID", dataIndex: "id", key: "id", render: (text) => <Link to={`/manager/teachers/${text}`}>{text}</Link> },  // Thêm cột ID
         { title: "Họ và Tên", dataIndex: "full_name", key: "full_name" },
         { title: "Email", dataIndex: "email", key: "email" },
         { title: "Số điện thoại", dataIndex: "phone_number", key: "phone_number" },
@@ -208,6 +209,16 @@ const TeacherManagement = () => {
                     </Form.Item>
                     <Form.Item label="Ngày sinh" name="date_of_birth">
                         <DatePicker format="YYYY-MM-DD" style={{ width: "100%" }} />
+                    </Form.Item>
+                    <Form.Item label="Giới tính" name="gender">
+                        <Select defaultValue="male">
+                            <Select.Option value="male">Nam</Select.Option>
+                            <Select.Option value="female">Nữ</Select.Option>
+                            <Select.Option value="other">Khác</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item label="Địa chỉ" name="address">
+                        <Input />
                     </Form.Item>
                 </Form>
             </Modal>

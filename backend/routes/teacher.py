@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from database.mysql import get_db
 from models.user import User
 from models.class_model import Class
+from models.session_model import Session as SessionModel
 from models.class_students_model import ClassStudent
-from schemas.teacher_schema import TeacherCreate, TeacherUpdate, TeacherResponse
+from schemas.teacher_schema import TeacherCreate, TeacherUpdate, TeacherResponse, TeacherScheduleResponse
 from schemas.class_schema import ClassTeacherResponse
 from typing import List
 from utils.security import hash_password
@@ -96,6 +97,8 @@ def update_teacher(
     teacher.full_name = teacher_data.full_name
     teacher.phone_number = teacher_data.phone_number
     teacher.date_of_birth = teacher_data.date_of_birth
+    teacher.email = teacher_data.email
+    teacher.gender = teacher_data.gender  # ✅ Thêm trư��ng gender vào model User
 
     db.commit()
     db.refresh(teacher)
@@ -163,3 +166,39 @@ def get_teacher_classes(
         )
 
     return result
+
+# API lấy lịch dạy của teacher
+@router.get("/{teacher_id}/schedules", response_model=List[TeacherScheduleResponse])
+def get_teacher_schedule_by_id(
+    teacher_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Kiểm tra quyền của người dùng
+    if current_user.role not in ["admin", "manager", "teacher"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem lịch giảng dạy")
+
+    # Nếu không phải admin hoặc manager, thì chỉ có thể xem lịch dạy của chính mình
+    if current_user.role in ["teacher"] and current_user.id != teacher_id:
+        raise HTTPException(status_code=403, detail="Bạn chỉ có thể xem lịch giảng dạy của mình")
+
+    # Truy vấn các tiết học (sessions) của giáo viên theo teacher_id
+    sessions = db.query(SessionModel).join(Class).filter(Class.teacher_id == teacher_id).all()
+
+    # Kiểm tra nếu không có tiết học nào
+    if not sessions:
+        raise HTTPException(status_code=404, detail="Không có tiết học nào được tìm thấy cho giáo viên này")
+
+    # Trả về các tiết học
+    return [
+        {
+            "session_id": session.id,  # ID của tiết học
+            "class_id": session.class_id,  # ID của lớp học
+            "class_name": session.class_obj.name,  # Tên lớp học
+            "teacher_name": session.class_obj.teacher.full_name,  # Tên giáo viên
+            "date": session.date.strftime("%Y-%m-%d"),  # Ngày học
+            "start_time": session.start_time.strftime("%H:%M"),  # Thời gian bắt đầu
+            "end_time": session.end_time.strftime("%H:%M"),  # Thời gian kết thúc
+        }
+        for session in sessions
+    ]

@@ -11,6 +11,7 @@ class User(Base):
     password = Column(String(255), nullable=False)
     phone_number = Column(String(20), nullable=False)
     role = Column(Enum("admin", "manager", "teacher"), nullable=False)
+    gender = Column(Enum("male", "female", "other"), nullable=True)
     date_of_birth = Column(Date, nullable=True)
     access_token = Column(Text, nullable=True)   # 🔹 Lưu Access Token
     refresh_token = Column(Text, nullable=True)  # 🔹 Lưu Refresh Token

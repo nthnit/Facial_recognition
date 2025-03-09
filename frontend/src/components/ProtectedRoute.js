@@ -13,7 +13,7 @@ const roleRoutes = {
         "/manager/classes",
         "/profile",
         "/manager/teachers",
-        "/face-attendance" // Thêm route FaceAttendance cho manager
+        "/face-attendance", // Thêm route FaceAttendance cho manager
     ],
     teacher: [
         "/teacher/dashboard", 
@@ -47,7 +47,9 @@ const ProtectedRoute = ({ allowedRoles, component: Component }) => {
     const isAllowed =
         allowedRoles.includes(userRole) &&
         (roleRoutes[userRole]?.includes(location.pathname) ||
-         (userRole === "manager" && (location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/") || location.pathname === "/face-attendance")) ||
+         // Thêm logic cho manager có thể truy cập vào trang `/manager/teachers/:id`
+         (userRole === "manager" && (location.pathname.startsWith("/manager/teachers/") || location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/") || location.pathname === "/face-attendance")) ||
+         // Thêm logic cho teacher có thể truy cập vào các trang `/teacher/students/`, `/teacher/classes/`, và `/news`
          (userRole === "teacher" && (location.pathname.startsWith("/teacher/students/") || location.pathname.startsWith("/teacher/classes/") || location.pathname === "/face-attendance" || location.pathname.startsWith("/news"))));
 
     if (!isAllowed) {
