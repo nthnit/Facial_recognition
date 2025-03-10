@@ -4,12 +4,12 @@ import { EditOutlined, DeleteOutlined, FilePdfOutlined, UploadOutlined } from "@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import wonderbotSearching from "../assets/images/apollo_robot.162763f5b5ae3d3729e593515018f621.svg"
 import axios from "axios";
+import API_BASE_URL from "../api/config";
 import jsPDF from "jspdf"; // ✅ Import jsPDF để xuất PDF
 import moment from "moment";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
-const API_BASE_URL = "http://127.0.0.1:8000";
 const StudentDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();

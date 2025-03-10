@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Card, Avatar, Button, Form, Input, Divider, message, DatePicker, Upload, Row, Col } from "antd";
 import { UserOutlined, EditOutlined, SaveOutlined, LockOutlined, UploadOutlined, CloseOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../api/config";
 import moment from "moment";
 import usePageTitle from "./common/usePageTitle";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 const Profile = () => {
     usePageTitle("Profile");
