@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, Col, Row, Typography, message, Button, Carousel } from "antd";
 import { UserOutlined, BookOutlined, SolutionOutlined, ReadOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 
@@ -23,7 +24,7 @@ const ManagerDashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await axios.get("http://127.0.0.1:8000/manager/stats", {
+                const response = await axios.get(`${API_BASE_URL}/manager/stats`, {
                     headers: getAuthHeaders(),
                 });
                 setStats(response.data);
@@ -38,7 +39,7 @@ const ManagerDashboard = () => {
 
     const fetchActiveBanners = async () => {
         try {
-            const response = await axios.get("http://127.0.0.1:8000/banners?status=active", {
+            const response = await axios.get(`${API_BASE_URL}/banners?status=active`, {
                 headers: getAuthHeaders(),
             });
             setBanners(response.data);

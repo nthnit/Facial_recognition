@@ -3,9 +3,9 @@ import { Card, Typography, Spin, Divider, message, Button, Row, Col, List, Pagin
 import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../api/config";
 
 const { Title, Text } = Typography;
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 const NewsDetail = () => {
     const { id } = useParams(); // Lấy id từ URL

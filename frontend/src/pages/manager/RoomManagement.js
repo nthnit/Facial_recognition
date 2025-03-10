@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, Select } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PoweroffOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 import { Link } from "react-router-dom";
@@ -9,7 +10,7 @@ import { Link } from "react-router-dom";
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+// const API_BASE_URL = "http://127.0.0.1:8000";
 
 const RoomManagement = () => {
   usePageTitle("Room Management");

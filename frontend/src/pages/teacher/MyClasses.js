@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Card, Typography, Row, Col, Spin, message } from "antd";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import usePageTitle from "../common/usePageTitle";
 
 const { Title, Text } = Typography;
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 const MyClasses = () => {
     usePageTitle("My Classes");

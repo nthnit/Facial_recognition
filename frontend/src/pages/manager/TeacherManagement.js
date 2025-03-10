@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker, Select } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileExcelOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import { useNavigate, Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import moment from "moment";
@@ -38,7 +39,7 @@ const TeacherManagement = () => {
     const fetchTeachers = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/teachers", {
+            const response = await axios.get(`${API_BASE_URL}/teachers`, {
                 headers: getAuthHeaders(),
             });
             setTeachers(response.data);
@@ -116,13 +117,13 @@ const TeacherManagement = () => {
 
             if (editingTeacher) {
                 // Cập nhật giáo viên
-                await axios.put(`http://127.0.0.1:8000/teachers/${editingTeacher.id}`, payload, {
+                await axios.put(`${API_BASE_URL}/teachers/${editingTeacher.id}`, payload, {
                     headers: getAuthHeaders(),
                 });
                 message.success("Cập nhật thông tin giáo viên thành công!");
             } else {
                 // Thêm giáo viên mới
-                await axios.post("http://127.0.0.1:8000/teachers/create", payload, {
+                await axios.post(`${API_BASE_URL}/teachers/create`, payload, {
                     headers: getAuthHeaders(),
                 });
                 message.success("Thêm giáo viên mới thành công!");
@@ -137,7 +138,7 @@ const TeacherManagement = () => {
 
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`http://127.0.0.1:8000/teachers/${id}`, {
+            await axios.delete(`${API_BASE_URL}/teachers/${id}`, {
                 headers: getAuthHeaders(),
             });
             message.success("Xóa giáo viên thành công!");

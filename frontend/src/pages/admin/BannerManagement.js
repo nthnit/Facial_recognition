@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, Upload, Button, message, Modal, Form, Space, Popconfirm, Typography } from "antd";
 import { UploadOutlined, DeleteOutlined, PoweroffOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import usePageTitle from "../common/usePageTitle";
 
 const { Text } = Typography;
@@ -20,7 +21,7 @@ const BannerManagement = () => {
   // Fetch banners from API
   const fetchBanners = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/banners", {
+      const response = await axios.get(`${API_BASE_URL}/banners`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         }
@@ -38,7 +39,7 @@ const BannerManagement = () => {
 
     try {
       // Upload image to Cloudinary
-      const response = await axios.post('http://127.0.0.1:8000/uploads/upload-image/', formData, {
+      const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -48,7 +49,7 @@ const BannerManagement = () => {
       const imageUrl = response.data.image_url;
 
       // Save the image URL in the database
-      await axios.post('http://127.0.0.1:8000/banners/', { image_url: imageUrl }, {
+      await axios.post(`${API_BASE_URL}/banners/`, { image_url: imageUrl }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         }
@@ -66,7 +67,7 @@ const BannerManagement = () => {
   const handleStatusChange = async (bannerId, currentStatus) => {
     try {
       const newStatus = currentStatus === "Active" ? "Deactivate" : "Active";
-      await axios.put(`http://127.0.0.1:8000/banners/${bannerId}/change-status`, { status: newStatus }, {
+      await axios.put(`${API_BASE_URL}/banners/${bannerId}/change-status`, { status: newStatus }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         }
@@ -81,7 +82,7 @@ const BannerManagement = () => {
   // Handle banner deletion
   const handleDelete = async (bannerId) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/banners/${bannerId}`, {
+      await axios.delete(`${API_BASE_URL}/banners/${bannerId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         }

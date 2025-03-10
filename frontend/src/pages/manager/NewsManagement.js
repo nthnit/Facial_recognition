@@ -2,14 +2,14 @@ import React, { useEffect, useState } from "react";
 import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload, Card, Typography } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
 
-const { TextArea } = Input;
 const { Title, Text } = Typography;
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+// const API_BASE_URL = "http://127.0.0.1:8000";
 
 const NewsManagement = () => {
     usePageTitle("News Management");

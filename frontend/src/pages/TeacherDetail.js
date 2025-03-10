@@ -3,13 +3,13 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card, Table, Tabs, message, Button, Row, Col, Avatar, Select, Modal, Form, Input, DatePicker } from "antd";
 import { EditOutlined } from "@ant-design/icons"
 import axios from "axios";
+import API_BASE_URL from "../api/config";
 import moment from "moment";
 import usePageTitle from "./common/usePageTitle";
 import { Breadcrumb } from 'antd';
 
 const { TabPane } = Tabs;
 
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 const TeacherDetail = () => {
   const { id } = useParams(); // Get teacher ID from the URL

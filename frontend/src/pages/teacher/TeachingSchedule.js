@@ -3,10 +3,9 @@ import { Calendar, Button, Modal, Row, Col, Typography, Card } from "antd";
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 import axios from "axios";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import API_BASE_URL from "../../api/config"
 
 const { Title, Text } = Typography;
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 const TeachingSchedule = () => {
     usePageTitle("Teaching Schedule");

@@ -6,6 +6,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
+import API_BASE_URL from "../../api/config"
 
 const { Option } = Select;
 
@@ -45,7 +46,7 @@ const ClassTracking = () => {
 
     const fetchRooms = async () => {
         try {
-          const response = await axios.get("http://127.0.0.1:8000/rooms?status=active", {
+          const response = await axios.get(`${API_BASE_URL}/rooms?status=active`, {
             headers: getAuthHeaders(),
           });
           setRooms(response.data);
@@ -66,7 +67,7 @@ const ClassTracking = () => {
     const fetchClasses = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/classes", {
+            const response = await axios.get(`${API_BASE_URL}/classes`, {
                 headers: getAuthHeaders(),
             });
             setClasses(response.data);
@@ -80,7 +81,7 @@ const ClassTracking = () => {
     // ✅ API lấy danh sách giáo viên
     const fetchTeachers = async () => {
         try {
-            const response = await axios.get("http://127.0.0.1:8000/teachers", {
+            const response = await axios.get(`${API_BASE_URL}/teachers`, {
                 headers: getAuthHeaders(),
             });
             setTeachers(response.data);
@@ -213,12 +214,12 @@ const ClassTracking = () => {
             console.log("Sending payload:", payload); // Kiểm tra dữ liệu trước khi gửi
     
             if (editingClass) {
-                await axios.put(`http://127.0.0.1:8000/classes/${editingClass.id}`, payload, {
+                await axios.put(`${API_BASE_URL}/classes/${editingClass.id}`, payload, {
                     headers: getAuthHeaders(),
                 });
                 message.success("Cập nhật lớp học thành công!");
             } else {
-                await axios.post("http://127.0.0.1:8000/classes", payload, {
+                await axios.post(`${API_BASE_URL}/classes`, payload, {
                     headers: getAuthHeaders(),
                 });
                 message.success("Thêm lớp học thành công!");
@@ -244,7 +245,7 @@ const ClassTracking = () => {
             content: "Bạn có chắc chắn muốn xoá lớp học này không?",
             onOk: async () => {
                 try {
-                    await axios.delete(`http://127.0.0.1:8000/classes/${id}`, {
+                    await axios.delete(`${API_BASE_URL}/classes/${id}`, {
                         headers: getAuthHeaders(),
                     });
                     message.success("Xóa lớp học thành công!");

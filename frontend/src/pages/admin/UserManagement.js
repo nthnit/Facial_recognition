@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Table, Button, Popconfirm, Modal, Form, Input, Select, Space, message, DatePicker } from "antd";
 import { EditOutlined, PlusOutlined, LockOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import moment from "moment";
 import { useNavigate } from "react-router-dom"; // Để điều hướng khi token hết hạn
 
@@ -14,7 +15,7 @@ const UserManagement = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate(); // Dùng để điều hướng khi bị lỗi xác thực
 
-    const API_URL = "http://127.0.0.1:8000/users";
+    const API_URL = `${API_BASE_URL}/users`;
 
     // Lấy token từ localStorage
     const getAuthHeaders = () => {

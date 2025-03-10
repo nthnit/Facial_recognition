@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch,  Progress, Row, Col, Typography  } from "antd";
 import { CheckOutlined } from '@ant-design/icons';
 import axios from "axios";
+import API_BASE_URL from "../api/config";
 import moment from "moment";
 import * as XLSX from "xlsx";
 import usePageTitle from "./common/usePageTitle";
@@ -48,7 +49,7 @@ const ClassDetail = () => {
 
     const fetchClassDetail = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/classes/${id}`, {
+            const response = await axios.get(`${API_BASE_URL}/classes/${id}`, {
                 headers: getAuthHeaders(),
             });
             setClassInfo(response.data);
@@ -60,7 +61,7 @@ const ClassDetail = () => {
 
     const fetchSessions = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/classes/${id}/sessions`, {
+            const response = await axios.get(`${API_BASE_URL}/classes/${id}/sessions`, {
                 headers: getAuthHeaders(),
             });
             setSessions(response.data);
@@ -71,7 +72,7 @@ const ClassDetail = () => {
 
     const fetchStudents = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/classes/${id}/students`, {
+            const response = await axios.get(`${API_BASE_URL}/classes/${id}/students`, {
                 headers: getAuthHeaders(),
             });
             setStudents(response.data);
@@ -82,7 +83,7 @@ const ClassDetail = () => {
 
     const fetchAllStudents = async () => {
         try {
-            const response = await axios.get("http://127.0.0.1:8000/students", {
+            const response = await axios.get("${API_BASE_URL}/students", {
                 headers: getAuthHeaders(),
             });
             const enrolledStudentIds = new Set(students.map((s) => s.id));
@@ -95,7 +96,7 @@ const ClassDetail = () => {
     const handleUpdateClass = async () => {
         try {
             const values = await form.validateFields();
-            await axios.put(`http://127.0.0.1:8000/classes/${id}`, values, {
+            await axios.put(`${API_BASE_URL}/classes/${id}`, values, {
                 headers: getAuthHeaders(),
             });
             message.success("Cập nhật thông tin lớp học thành công!");
@@ -113,7 +114,7 @@ const ClassDetail = () => {
 
     const fetchLatestSchedule = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/schedules/${id}/latest`, {
+            const response = await axios.get(`${API_BASE_URL}/schedules/${id}/latest`, {
                 headers: getAuthHeaders(),
             });
             // Lưu lịch học vào state
@@ -132,7 +133,7 @@ const ClassDetail = () => {
         try {
             // 🔹 Gọi API để lấy trạng thái điểm danh hiện tại của session này
             const response = await axios.get(
-                `http://127.0.0.1:8000/classes/${id}/sessions/${session.date}/attendance`,
+                `${API_BASE_URL}/classes/${id}/sessions/${session.date}/attendance`,
                 { headers: getAuthHeaders() }
             );
     
@@ -188,7 +189,7 @@ const ClassDetail = () => {
             console.log("Sending attendance payload:", attendancePayload);  // Kiểm tra dữ liệu
     
             await axios.post(
-                `http://127.0.0.1:8000/classes/${id}/sessions/${currentSession.date}/attendance`,
+                `${API_BASE_URL}/classes/${id}/sessions/${currentSession.date}/attendance`,
                 attendancePayload,
                 { headers: getAuthHeaders() }
             );
@@ -206,7 +207,7 @@ const ClassDetail = () => {
 
     const handleEnrollStudent = async (studentId) => {
         try {
-            await axios.post(`http://127.0.0.1:8000/classes/${id}/enroll/${studentId}`, {}, {
+            await axios.post(`${API_BASE_URL}/classes/${id}/enroll/${studentId}`, {}, {
                 headers: getAuthHeaders(),
             });
             message.success("Học sinh đã được thêm vào lớp!");
@@ -220,7 +221,7 @@ const ClassDetail = () => {
     const exportAttendanceToExcel = async () => {
         try {
             const attendanceResponse = await axios.get(
-                `http://127.0.0.1:8000/classes/${id}/attendance`,
+                `${API_BASE_URL}/classes/${id}/attendance`,
                 { headers: getAuthHeaders() }
             );
 

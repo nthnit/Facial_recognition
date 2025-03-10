@@ -3,10 +3,10 @@ import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagin
 import usePageTitle from "../common/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 const TeacherDashboard = () => {
     usePageTitle("Teacher Dashboard");

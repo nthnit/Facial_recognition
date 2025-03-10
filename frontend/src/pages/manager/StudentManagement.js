@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker , Upload} from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
+import API_BASE_URL from "../../api/config"
 import moment from "moment";
 import * as XLSX from "xlsx"; 
 import { useNavigate, Link } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 
 const { Title } = Typography;
-const API_BASE_URL = "http://127.0.0.1:8000";
 const StudentManagement = () => {
     usePageTitle("Student Management");
     const [students, setStudents] = useState([]);
@@ -40,7 +40,7 @@ const StudentManagement = () => {
     const fetchStudents = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://127.0.0.1:8000/students", {
+            const response = await axios.get(`${API_BASE_URL}/students`, {
                 headers: getAuthHeaders(),
             });
             setStudents(response.data);
@@ -114,13 +114,13 @@ const handleOk = async () => {
         // ✅ Kiểm tra nếu đang chỉnh sửa học sinh (editingStudent)
         if (editingStudent) {
             // Cập nhật học sinh
-            await axios.put(`http://127.0.0.1:8000/students/${editingStudent.id}`, payload, {
+            await axios.put(`${API_BASE_URL}/students/${editingStudent.id}`, payload, {
                 headers: getAuthHeaders(),
             });
             message.success("Cập nhật học sinh thành công!");
         } else {
             // Thêm mới học sinh
-            await axios.post("http://127.0.0.1:8000/students", payload, {
+            await axios.post(`${API_BASE_URL}/students`, payload, {
                 headers: getAuthHeaders(),
             });
             message.success("Thêm học sinh thành công!");
@@ -183,7 +183,7 @@ const handleOk = async () => {
     // 🔹 Xử lý xoá học sinh
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`http://127.0.0.1:8000/students/${id}`, {
+            await axios.delete(`${API_BASE_URL}/students/${id}`, {
                 headers: getAuthHeaders(),
             });
             message.success("Xóa học sinh thành công!");
