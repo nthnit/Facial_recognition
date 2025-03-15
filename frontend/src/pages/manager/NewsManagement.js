@@ -3,13 +3,12 @@ import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload, C
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import API_BASE_URL from "../../api/config"
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link } from "react-router-dom";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
 
 const { Title, Text } = Typography;
 
-// const API_BASE_URL = "http://127.0.0.1:8000";
 
 const NewsManagement = () => {
     usePageTitle("News Management");
@@ -155,7 +154,7 @@ const NewsManagement = () => {
             const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`, // ✅ Gửi token khi upload ảnh
+                    Authorization: `Bearer ${token}`, 
                 },
             });
     
@@ -179,13 +178,13 @@ const NewsManagement = () => {
             </Title>
 
             {/* Search and Add New News */}
-            <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+            <Space style={{ marginBottom: 10, width: "100%", justifyContent: "space-between" }}>
                 <Input
                     placeholder="Tìm kiếm tin tức..."
                     prefix={<SearchOutlined />}
                     onChange={handleSearch}
                     allowClear
-                    style={{ width: "60%" }}
+                    style={{ width: "100%" }}
                 />
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
                     Đăng tin
@@ -226,7 +225,8 @@ const NewsManagement = () => {
                                 Sửa
                             </Button>,
                             <Button
-                                type="link"
+                                type="dashed"
+                                ghost
                                 icon={<DeleteOutlined />}
                                 danger
                                 onClick={() => handleDeleteNews(item.id)}
@@ -236,7 +236,7 @@ const NewsManagement = () => {
                         ]}
                     >
                         <Card.Meta
-                            title={item.title}
+                            title={<Link to={`/news/${item.id}`}>{item.title}</Link>}
                             description={
                                 <>
                                     <p>{item.content}</p>

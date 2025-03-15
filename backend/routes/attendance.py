@@ -155,8 +155,13 @@ async def face_attendance(
                 Attendance.student_id == matched_student.id
             ).first()
 
+            
             if existing_attendance:
-                print("Học sinh đã điểm danh rồi, không tạo bản ghi mới.")
+                # Nếu học sinh đã có bản ghi điểm danh, cập nhật trạng thái
+                print("Học sinh đã điểm danh rồi, cập nhật bản ghi điểm danh.")
+                existing_attendance.status = "Present" 
+                existing_attendance.session_date = request.session_date  
+                db.commit()  
                 return FaceAttendanceResponse(student_id=matched_student.id, full_name=matched_student.full_name)
 
             # Ghi nhận điểm danh vào bảng attendance

@@ -3,6 +3,7 @@ import { Card, Typography, Spin, Divider, message, Button, Row, Col, List, Pagin
 import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import usePageTitle from "./common/usePageTitle";
 import API_BASE_URL from "../api/config";
 
 const { Title, Text } = Typography;
@@ -14,7 +15,9 @@ const NewsDetail = () => {
     const [relatedNews, setRelatedNews] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 4; // Number of related news per page
+    const userRole = localStorage.getItem("role");
     const navigate = useNavigate();
+    usePageTitle(news?.title || "Chi tiết tin tức");
 
     // Lấy token từ localStorage
     const getAuthHeaders = () => {
@@ -78,7 +81,7 @@ const NewsDetail = () => {
         <div style={{ padding: "20px", backgroundColor: "#f5f5f5" }}>
             {/* Nút quay lại */}
             <Button 
-                onClick={() => navigate("/teacher/dashboard")} 
+                onClick={() => navigate(userRole === "manager" ? "/manager/news" : "/teacher/dashboard")} 
                 icon={<ArrowLeftOutlined />}
                 style={{
                     paddingLeft: 0,
@@ -87,7 +90,7 @@ const NewsDetail = () => {
                 }}
                 type='link'
             >
-                Quay lại Dashboard
+                {userRole === "manager" ? "Quay lại quản lý tin tức" : "Quay lại Dashboard"}
             </Button>
 
             {/* Title, Date, and Author Block with background image */}

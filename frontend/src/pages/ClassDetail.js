@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch,  Progress, Row, Col, Typography  } from "antd";
-import { CheckOutlined } from '@ant-design/icons';
+import { Breadcrumb, Card, Table, Tabs, message, Button, Modal, Form, Input, Select, Switch,  Progress, Row, Col, Typography, Dropdown, Menu, Popconfirm  } from "antd";
+import { CheckOutlined, EditOutlined, DownOutlined } from '@ant-design/icons';
 import axios from "axios";
 import API_BASE_URL from "../api/config";
 import moment from "moment";
@@ -23,10 +23,11 @@ const ClassDetail = () => {
     const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
     const [allStudents, setAllStudents] = useState([]);
     const [attendanceData, setAttendanceData] = useState({});
-    const [currentSessionId, setCurrentSessionId] = useState(null);
     const [currentSession, setCurrentSession] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [schdedule,setSchedule] = useState([]);
+    const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+    const [studentsWithGrades, setStudentsWithGrades] = useState([]);
     const [form] = Form.useForm();
     const currentUserRole = localStorage.getItem("role");
 
@@ -43,9 +44,12 @@ const ClassDetail = () => {
     useEffect(() => {
         fetchClassDetail();
         fetchSessions();
-        fetchStudents();
         fetchLatestSchedule();
     }, [id]);
+    
+    useEffect(() => {
+        fetchStudents();
+    }, []);
 
     const fetchClassDetail = async () => {
         try {
@@ -83,7 +87,7 @@ const ClassDetail = () => {
 
     const fetchAllStudents = async () => {
         try {
-            const response = await axios.get("${API_BASE_URL}/students", {
+            const response = await axios.get(`${API_BASE_URL}/students`, {
                 headers: getAuthHeaders(),
             });
             const enrolledStudentIds = new Set(students.map((s) => s.id));
@@ -308,6 +312,88 @@ const ClassDetail = () => {
         }
     };
 
+
+    const fetchGrades = async (sessionId) => {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/grades/sessions/${sessionId}/grades`, {
+            headers: getAuthHeaders(),
+          });
+          setStudentsWithGrades(response.data);
+          setIsGradeModalOpen(true); 
+        } catch (error) {
+          message.error("Buổi học này chưa có học sinh nào được nhập điểm");
+        }
+      };
+    
+    
+
+    const openGradeModal = (session) => {
+        setCurrentSession(session);
+        fetchGrades(session.session_id); 
+        
+    };
+    
+    
+    const handleGradeSubmit = async () => {
+        try {
+            // Lấy dữ liệu điểm và trạng thái bài về nhà từ form
+            const values = await form.validateFields();
+    
+            // Tạo payload cho mỗi học sinh
+            const grades = studentsWithGrades.map((student) => ({
+                session_id: currentSession.session_id,
+                student_id: student.student_id,
+                grade: values[student.id]?.grade || 0, // Điểm học sinh
+                status: values[student.id]?.status || "Not Done", // Trạng thái bài về nhà
+            }));
+            console.log(grades);
+            
+    
+            // Gửi dữ liệu lên API
+            await axios.post(`${API_BASE_URL}/grades/sessions/${currentSession.session_id}/grades`, grades, {
+                headers: getAuthHeaders(),
+            });
+    
+            message.success("Điểm đã được cập nhật!");
+            setIsGradeModalOpen(false);
+        } catch (error) {
+            message.error("Lỗi khi lưu điểm.");
+        }
+    };
+    
+    // Hàm xử lý chọn mục từ dropdown
+    const handleMenuClick = (e, record) => {
+        if (e.key === 'attendance') {
+        openAttendanceModal(record); // Mở modal điểm danh
+        } else if (e.key === 'grade') {
+        openGradeModal(record); // Mở modal nhập điểm
+        }
+    };
+    
+    // Menu dropdown với các lựa chọn
+    const actionMenu = (record) => (
+        <Menu onClick={(e) => handleMenuClick(e, record)}>
+        <Menu.Item key="attendance">Điểm danh</Menu.Item>
+        <Menu.Item key="grade">Nhập điểm</Menu.Item>
+        </Menu>
+    );
+
+
+    const handleUnenroll = async (studentId) => {
+        try {
+            // Gọi API gỡ học sinh khỏi lớp
+            await axios.post(`${API_BASE_URL}/classes/${id}/unenroll/${studentId}`, {}, {
+                headers: getAuthHeaders(),
+            });
+            message.success("Học sinh đã được gỡ khỏi lớp!");
+            // Sau khi gỡ học sinh khỏi lớp, bạn có thể tải lại danh sách học sinh
+            fetchStudents();
+        } catch (error) {
+            message.error("Lỗi khi gỡ học sinh khỏi lớp.");
+        }
+    };
+    
+
     if (loading) return <p>Đang tải thông tin lớp học...</p>;
 
     return (
@@ -335,7 +421,7 @@ const ClassDetail = () => {
                             <Card
                                 title="Basic Info"
                                 style={{ marginBottom: 20 }}
-                                extra={currentUserRole === 'manager' && <Button onClick={() => setIsUpdateModalOpen(true)}>Cập nhật</Button>}
+                                extra={currentUserRole === 'manager' && <Button onClick={() => setIsUpdateModalOpen(true)}><EditOutlined /> Cập nhật</Button>}
                             >
                                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between" }}>
                                     <div style={{ flex: "1 1 45%" }}>
@@ -463,8 +549,8 @@ const ClassDetail = () => {
                             </Button>
                             <Table
                                 columns={[
-                                    { title: "Buổi số", dataIndex: "session_number", key: "session_number" },
-                                    { title: "Mã buổi học", dataIndex: "session_id", key: "session_id" },
+                                    // { title: "Buổi số", dataIndex: "session_number", key: "session_number" },
+                                    { title: "Mã buổi học", dataIndex: "session_id", key: "session_id", render: (text, record) => <Link to={`/sessions/${record.session_id}`}>{text}</Link> },
                                     { title: "Ngày học", dataIndex: "date", key: "date", render: (date) => moment(date).format("DD-MM-YYYY") },
                                     { title: "Thứ", dataIndex: "weekday", key: "weekday" },
                                     { title: "Phòng học", dataIndex: "room_name", key: "room_name" },
@@ -475,11 +561,13 @@ const ClassDetail = () => {
                                     {
                                         title: "Hành động",
                                         render: (_, record) => (
-                                            <Button type="primary" onClick={() => openAttendanceModal(record)}>
-                                                Điểm danh
+                                          <Dropdown overlay={() => actionMenu(record)} trigger={['click']}>
+                                            <Button type="primary">
+                                              Chọn hành động <DownOutlined />
                                             </Button>
+                                          </Dropdown>
                                         ),
-                                    },
+                                      },
                                 ]}
                                 dataSource={sessions}
                                 rowKey="id"
@@ -496,6 +584,20 @@ const ClassDetail = () => {
                                     { title: "Ngày sinh", dataIndex: "dob", key: "dob", render: (dob) => moment(dob).format("DD-MM-YYYY") },
                                     { title: "Email", dataIndex: "email", key: "email" },
                                     { title: "Số điện thoại", dataIndex: "phone_number", key: "phone" },
+                                    {
+                                        title: "Hành động",
+                                        key: "action",
+                                        render: (_, record) => (
+                                            <Popconfirm
+                                                title="Bạn chắc chắn muốn gỡ học sinh này khỏi lớp?"
+                                                onConfirm={() => handleUnenroll(record.id)}
+                                                okText="Có"
+                                                cancelText="Không"
+                                            >
+                                                <Button type="primary" ghost danger>Unenroll</Button>
+                                            </Popconfirm>
+                                        ),
+                                    },
                                 ]}
                                 dataSource={students}
                                 rowKey="id"
@@ -568,6 +670,93 @@ const ClassDetail = () => {
                     rowKey="id"
                 />
             </Modal>
+
+            {/* Modal for Grades */}
+            <Modal
+                title={`Nhập điểm cho học sinh trong buổi học: ${currentSession?.date}`}
+                visible={isGradeModalOpen}
+                onCancel={() => setIsGradeModalOpen(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setIsGradeModalOpen(false)}>
+                        Huỷ
+                    </Button>,
+                    <Button key="save" type="primary" onClick={handleGradeSubmit}>
+                        Lưu điểm
+                    </Button>,
+                ]}
+            >
+                <Form form={form} layout="vertical">
+                    <Table
+                        dataSource={studentsWithGrades}
+                        rowKey="student_id"
+                        pagination={false}
+                        columns={[
+                            {
+                                title: 'Mã học sinh',
+                                dataIndex: 'student_id',
+                                key: 'student_id',
+                                render: (text) => <Text>{text}</Text>,
+                            },
+                            {
+                                title: 'Họ và tên',
+                                dataIndex: 'student_full_name',
+                                key: 'student_full_name',
+                                render: (text) => <Text>{text}</Text>,
+                            },
+                            {
+                                title: 'Trạng thái bài về nhà',
+                                dataIndex: 'status',
+                                key: 'status',
+                                render: (_, record) => (
+                                    <Form.Item
+                                        name={[record.id, 'status']}
+                                        defaultValue={record.status || 'Not Done'}  // Prefill giá trị từ API
+                                        style={{ marginBottom: 0 }}
+                                    >
+                                        <Select
+                                            onChange={(value) => {
+                                                // Khi chọn "Not Done", set điểm thành 0 và disabled input điểm
+                                                if (value === "Not Done") {
+                                                    form.setFieldsValue({
+                                                        [record.id]: { grade: 0, status: value },
+                                                    });
+                                                } else {
+                                                    form.setFieldsValue({
+                                                        [record.id]: { status: value },
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            <Option value="Complete">Complete</Option>
+                                            <Option value="Incomplete">Incomplete</Option>
+                                            <Option value="Not Done">Not Done</Option>
+                                        </Select>
+                                    </Form.Item>
+                                ),
+                            },
+                            {
+                                title: 'Điểm',
+                                dataIndex: 'grade',
+                                key: 'grade',
+                                render: (_, record) => (
+                                    <Form.Item
+                                        name={[record.id, 'grade']}
+                                        initialValue={record.grade || 0}
+                                        style={{ marginBottom: 0 }}
+                                    >
+                                        <Input
+                                            disabled={form.getFieldValue([record.id, 'status']) === "Not Done"}  // Disable khi chọn "Not Done"
+                                            defaultValue={form.getFieldValue([record.id, 'status']) === "Not Done" ? 0 : record.grade}
+                                        />
+                                    </Form.Item>
+                                ),
+                            },
+                        ]}
+                    />
+                </Form>
+            </Modal>
+
+
         </div>
     );
 };

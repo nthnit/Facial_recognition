@@ -3,9 +3,9 @@ import { Button, Modal, message, Spin, List, Divider, Table, Tag } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import Webcam from 'react-webcam';
 import axios from 'axios';
+import API_BASE_URL from "../api/config";
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const FaceAttendance = () => {
   const webcamRef = useRef(null);
@@ -127,12 +127,27 @@ const FaceAttendance = () => {
   const handleClose = () => {
     setIsCameraOpen(false);
     setRecognizedStudents([]);
+    
+    // Cập nhật trạng thái điểm danh sau khi đóng modal
     if (recognizedStudents.length > 0) {
-      message.success('Đã hoàn thành điểm danh tự động!');
+        // Cập nhật trạng thái điểm danh trong bảng điểm danh (cập nhật API hoặc dữ liệu trong state)
+        const updatedAttendanceData = attendanceData.map((student) => {
+            const recognizedStudent = recognizedStudents.find(
+                (recognized) => recognized.student_id === student.student_id
+            );
+            if (recognizedStudent) {
+                return { ...student, status: 'Present' }; // Cập nhật trạng thái điểm danh là "Present"
+            }
+            return student; // Giữ nguyên học sinh chưa được điểm danh
+        });
+
+        setAttendanceData(updatedAttendanceData); // Cập nhật lại dữ liệu điểm danh trong bảng
+        message.success('Đã hoàn thành điểm danh tự động!');
     } else {
-      message.info('Không có học sinh được điểm danh.');
+        message.info('Không có học sinh được điểm danh.');
     }
-  };
+};
+
 
   const handleGoBack = () => {
     navigate(-1); // Go back to the previous page

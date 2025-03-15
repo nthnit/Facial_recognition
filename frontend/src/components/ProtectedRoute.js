@@ -15,6 +15,7 @@ const roleRoutes = {
         "/profile",
         "/manager/teachers",
         "/face-attendance", // Thêm route FaceAttendance cho manager
+        "/sessions"
     ],
     teacher: [
         "/teacher/dashboard", 
@@ -24,7 +25,8 @@ const roleRoutes = {
         "/teacher/classes",  // Thêm quyền truy cập cho teacher vào chi tiết lớp
         "/teacher/students", // Thêm quyền truy cập cho teacher vào chi tiết học sinh
         "/face-attendance",   // Thêm route FaceAttendance cho teacher
-        "/news"
+        "/news",
+        "/sessions"
     ]
 };
 
@@ -49,7 +51,7 @@ const ProtectedRoute = ({ allowedRoles, component: Component }) => {
         allowedRoles.includes(userRole) &&
         (roleRoutes[userRole]?.includes(location.pathname) ||
          // Thêm logic cho manager có thể truy cập vào trang `/manager/teachers/:id`
-         (userRole === "manager" && (location.pathname.startsWith("/manager/teachers/") || location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/") || location.pathname === "/face-attendance")) ||
+         (userRole === "manager" && (location.pathname.startsWith("/manager/teachers/") || location.pathname.startsWith("/manager/students/") || location.pathname.startsWith("/manager/classes/") || location.pathname === "/face-attendance" )) || location.pathname.startsWith("/sessions")  || location.pathname.startsWith("/news")  ||
          // Thêm logic cho teacher có thể truy cập vào các trang `/teacher/students/`, `/teacher/classes/`, và `/news`
          (userRole === "teacher" && (location.pathname.startsWith("/teacher/students/") || location.pathname.startsWith("/teacher/classes/") || location.pathname === "/face-attendance" || location.pathname.startsWith("/news"))));
 

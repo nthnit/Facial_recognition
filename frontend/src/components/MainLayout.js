@@ -27,8 +27,6 @@ const MainLayout = () => {
                 <Content style={{ padding: 20, flex: 1, marginTop: 64 }}>
                     <Outlet />
                 </Content>
-
-                {/* Footer luôn nằm dưới */}
                 <AppFooter />
             </Layout>
         </Layout>

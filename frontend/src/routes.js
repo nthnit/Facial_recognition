@@ -12,6 +12,7 @@ import ClassDetail from "./pages/ClassDetail"; // ✅ Import trang thông tin ch
 import FaceAttendance from "./components/FaceAttendance";
 import NewsDetail from "./pages/NewsDetail"; 
 import TeacherDetail from "./pages/TeacherDetail"; 
+import SessionDetail from "./pages/SessionDetail";
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
@@ -59,6 +60,9 @@ const AppRoutes = () => {
                         <Route path="manager/students/:id" element={<StudentDetail />} />
                         <Route path="manager/classes/:id" element={<ClassDetail />} />
                         <Route path="manager/teachers/:id" element={<TeacherDetail />} />
+
+                        {/* 📌 Routes cho Manager and Teacher - Add route for session detail */}
+                        <Route path="sessions/:sessionId" element={<SessionDetail />} /> 
 
 
                         {/* 📌 Routes cho Giảng viên */}

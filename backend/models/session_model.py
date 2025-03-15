@@ -19,3 +19,8 @@ class Session(Base):
     attendances = relationship("Attendance", back_populates="session", cascade="all, delete-orphan")
     
     room = relationship("Room", back_populates="sessions")
+    
+    students = relationship("SessionStudent", back_populates="session", cascade="all, delete-orphan")
+    
+    grades = relationship("Grade", back_populates="session", cascade="all, delete-orphan")
+    

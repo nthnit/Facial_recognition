@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination, Button, Carousel } from "antd";
+import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination, Button, Carousel, message } from "antd";
 import usePageTitle from "../common/usePageTitle";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -12,6 +12,7 @@ const TeacherDashboard = () => {
     usePageTitle("Teacher Dashboard");
 
     // State
+    const [user, setUser] = useState(null);
     const [todayClasses, setTodayClasses] = useState([]);
     const [upcomingClasses, setUpcomingClasses] = useState([]);
     const [pastClasses, setPastClasses] = useState([]);
@@ -86,6 +87,7 @@ const TeacherDashboard = () => {
         fetchClassesData();
         fetchNews();
         fetchBanners();  // Fetch banners on dashboard load
+        fetchUserInfo();
     }, []);
 
     // Hàm nhóm các lớp theo ngày
@@ -155,9 +157,28 @@ const TeacherDashboard = () => {
         navigate(`/news/${id}`);
     };
 
+    const fetchUserInfo = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                message.error("Bạn chưa đăng nhập!");
+                navigate("/login");
+                return;
+            }
+
+            const response = await axios.get("http://127.0.0.1:8000/users/user/info", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            setUser(response.data);
+        } catch (error) {
+            message.error("Lỗi khi lấy thông tin người dùng.");
+        }
+    };
+
     return (
         <div style={{ padding: 20 }}>
-            <h2>Xin chào,</h2>
+            <h2 style={{ fontWeight: "bold", fontSize:28 }}>Xin chào, {user ? user.full_name : "Người dùng"}</h2>
             
             {/* Banner Carousel */}
             {banners.length > 0 && (
@@ -220,12 +241,12 @@ const TeacherDashboard = () => {
                     <Card title="Tổng quan" style={{ marginBottom: 20 }}>
                         <Row>
                             <Col span={24}>
-                                <Text strong>Số lớp học hôm nay:</Text>
+                                <Text strong style={{marginRight: "0.5rem"}}>Số lớp học hôm nay:</Text>
                                 <Text>{todayClasses.length}</Text>
                             </Col>
                             <Divider />
                             <Col span={24}>
-                                <Text strong>Số lớp học sắp tới:</Text>
+                                <Text strong style={{marginRight: "0.5rem"}}>Số lớp học sắp tới:</Text>
                                 <Text>{upcomingClasses.length}</Text>
                             </Col>
                         </Row>

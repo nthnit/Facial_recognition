@@ -7,6 +7,7 @@ from models.schedule_model import Schedule
 from models.student_model import Student
 from models.room_model import Room
 from models.class_students_model import ClassStudent
+from models.session_student_model import SessionStudent
 from models.user import User
 from models.attendance_model import Attendance
 from schemas.class_schema import ClassCreate, ClassUpdate, ClassResponse
@@ -19,7 +20,7 @@ import pandas as pd
 from fastapi.responses import FileResponse
 import os
 from datetime import datetime, timedelta, time, date
-from routes.user import get_current_user  # ✅ Import xác thực user
+from routes.user import get_current_user 
 
 router = APIRouter()
 
@@ -409,6 +410,32 @@ def get_students_by_class(
     return students
 
 # 🟢 API THÊM HỌC SINH VÀO LỚP
+# @router.post("/{class_id}/enroll/{student_id}")
+# def enroll_student(
+#     class_id: int,
+#     student_id: int,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     if current_user.role not in ["admin", "manager"]:
+#         raise HTTPException(status_code=403, detail="Bạn không có quyền thêm học sinh vào lớp")
+
+#     class_obj = db.query(Class).filter(Class.id == class_id).first()
+#     student_obj = db.query(Student).filter(Student.id == student_id).first()
+
+#     if not class_obj or not student_obj:
+#         raise HTTPException(status_code=404, detail="Lớp học hoặc học sinh không tồn tại")
+
+#     existing_enrollment = db.query(ClassStudent).filter_by(class_id=class_id, student_id=student_id).first()
+#     if existing_enrollment:
+#         raise HTTPException(status_code=400, detail="Học sinh đã đăng ký lớp này")
+
+#     new_enrollment = ClassStudent(class_id=class_id, student_id=student_id, enrolled_at=datetime.utcnow())
+#     db.add(new_enrollment)
+#     db.commit()
+
+#     return {"message": "Học sinh đã được thêm vào lớp"}
+
 @router.post("/{class_id}/enroll/{student_id}")
 def enroll_student(
     class_id: int,
@@ -419,24 +446,91 @@ def enroll_student(
     if current_user.role not in ["admin", "manager"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền thêm học sinh vào lớp")
 
+    # Kiểm tra lớp học và học sinh có tồn tại không
     class_obj = db.query(Class).filter(Class.id == class_id).first()
     student_obj = db.query(Student).filter(Student.id == student_id).first()
 
     if not class_obj or not student_obj:
         raise HTTPException(status_code=404, detail="Lớp học hoặc học sinh không tồn tại")
 
+    # Kiểm tra học sinh đã đăng ký lớp này chưa
     existing_enrollment = db.query(ClassStudent).filter_by(class_id=class_id, student_id=student_id).first()
     if existing_enrollment:
         raise HTTPException(status_code=400, detail="Học sinh đã đăng ký lớp này")
 
+    # Thêm học sinh vào lớp học
     new_enrollment = ClassStudent(class_id=class_id, student_id=student_id, enrolled_at=datetime.utcnow())
     db.add(new_enrollment)
+    db.commit()  # Commit để lưu học sinh vào lớp
+
+    # Lấy danh sách tất cả các session trong lớp học từ ngày thêm học sinh cho đến ngày cuối
+    sessions = db.query(SessionModel).filter(SessionModel.class_id == class_id, SessionModel.date >= datetime.utcnow().date()).order_by(SessionModel.date).all()
+
+    # Thêm học sinh vào tất cả các session
+    for session in sessions:
+        # Lưu vào bảng session_students
+        session_student = SessionStudent(session_id=session.id, student_id=student_id)
+        db.add(session_student)
+
+        # Tạo bản ghi điểm danh cho học sinh trong session
+        attendance_record = Attendance(
+            session_id=session.id,
+            student_id=student_id,
+            class_id=class_id,
+            status="Absent",
+            session_date=session.date  
+        )
+        db.add(attendance_record)
+
+    db.commit() 
+
+    return {"message": "Học sinh đã được thêm vào lớp và vào tất cả các buổi học từ ngày đăng ký, cùng với bản ghi điểm danh."}
+
+
+# API Unenroll học sinh khỏi lớp
+@router.post("/{class_id}/unenroll/{student_id}")
+def unenroll_student(
+    class_id: int,
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền gỡ học sinh khỏi lớp")
+
+    # Kiểm tra lớp học và học sinh có tồn tại không
+    class_obj = db.query(Class).filter(Class.id == class_id).first()
+    student_obj = db.query(Student).filter(Student.id == student_id).first()
+
+    if not class_obj or not student_obj:
+        raise HTTPException(status_code=404, detail="Lớp học hoặc học sinh không tồn tại")
+
+    # Kiểm tra học sinh có đăng ký lớp học này không
+    existing_enrollment = db.query(ClassStudent).filter_by(class_id=class_id, student_id=student_id).first()
+    if not existing_enrollment:
+        raise HTTPException(status_code=400, detail="Học sinh không đăng ký lớp học này")
+
+    # Xóa học sinh khỏi lớp học
+    db.delete(existing_enrollment)
     db.commit()
+    
+    sessions = db.query(SessionModel).filter(SessionModel.class_id == class_id, SessionModel.date >= datetime.utcnow().date()).all()
+    for session in sessions:
+        session_student = db.query(SessionStudent).filter_by(session_id=session.id, student_id=student_id).first()
+        if session_student:
+            db.delete(session_student)
+            db.commit()
+        
+        # Xóa bản ghi điểm danh của học sinh trong các session này
+        attendance_record = db.query(Attendance).filter_by(session_id=session.id, student_id=student_id).first()
+        if attendance_record:
+            db.delete(attendance_record)
+            db.commit()
 
-    return {"message": "Học sinh đã được thêm vào lớp"}
+    return {"message": "Học sinh đã được gỡ khỏi lớp và tất cả các buổi học"}
 
 
-# API XỬ LÝ SESSION CỦA LỚP HỌC
+# API Lấy ra các sessions của lớp theo id
 @router.get("/{class_id}/sessions", response_model=List[SessionResponse])
 def get_class_sessions(
     class_id: int,
@@ -459,14 +553,15 @@ def get_class_sessions(
         .order_by(SessionModel.date)
         .all()
     )
+    
 
     session_list = []
     for index, (session, room_name) in enumerate(sessions, start=1):
-        # Lấy danh sách học sinh của lớp
+        # Lấy danh sách học sinh của session từ bảng `session_students`
         students = (
             db.query(Student)
-            .join(ClassStudent, Student.id == ClassStudent.student_id)
-            .filter(ClassStudent.class_id == class_id)
+            .join(SessionStudent, Student.id == SessionStudent.student_id)
+            .filter(SessionStudent.session_id == session.id)
             .all()
         )
 
@@ -482,22 +577,27 @@ def get_class_sessions(
             len([a for a in attendance_records if a.status == "Present"]) / len(students)
             if students else 0
         )
+        class_code = db.query(Class.class_code).filter(Class.id == session.class_id).first()
+        class_code = class_code[0] if class_code else None
 
         # Thêm session vào danh sách trả về (bao gồm `session_id` và `room_name`)
         session_list.append({
             "session_id": session.id,  # ✅ Thêm session_id vào response
-            "session_number": index,
+            # "session_number": index,
+            "class_id": session.class_id,
+            "class_code": class_code,
             "date": session.date,
             "weekday": session.date.strftime("%A"),
             "start_time": session.start_time.strftime("%H:%M"),
             "end_time": session.end_time.strftime("%H:%M"),
             "total_students": len(students),
             "attendance_rate": round(attendance_rate * 100, 2),
-            "students": [{"id": s.id, "full_name": s.full_name} for s in students],
+            "students": [StudentResponse.from_orm(student) for student in students],
             "room_name": room_name  # Thêm tên phòng học vào kết quả
         })
 
     return session_list
+
 
 
 

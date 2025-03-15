@@ -38,7 +38,7 @@ const StudentDetail = () => {
 
     const fetchStudent = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/students/${id}`, {
+            const response = await axios.get(`${API_BASE_URL}/students/${id}`, {
                 headers: getAuthHeaders(),
             });
             setStudent(response.data);
@@ -50,7 +50,7 @@ const StudentDetail = () => {
     // ✅ API lấy danh sách lớp mà học sinh tham gia
     const fetchStudentClasses = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/students/${id}/classes`, {
+            const response = await axios.get(`${API_BASE_URL}/students/${id}/classes`, {
                 headers: getAuthHeaders(),
             });
             setClasses(response.data);
@@ -62,7 +62,7 @@ const StudentDetail = () => {
     // ✅ API lấy danh sách buổi học (sessions) của học sinh
     const fetchStudentSessions = async () => {
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/students/${id}/sessions`, {
+            const response = await axios.get(`${API_BASE_URL}/students/${id}/sessions`, {
                 headers: getAuthHeaders(),
             });
             setSessions(response.data);
@@ -92,7 +92,7 @@ const StudentDetail = () => {
                 date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : "2000-01-01",
             };
 
-            await axios.put(`http://127.0.0.1:8000/students/${id}`, payload, {
+            await axios.put(`${API_BASE_URL}/students/${id}`, payload, {
                 headers: getAuthHeaders(),
             });
             messageApi.success("Cập nhật thông tin thành công!");
@@ -139,7 +139,7 @@ const StudentDetail = () => {
 
     const handleDelete = async () => {
         try {
-            await axios.delete(`http://127.0.0.1:8000/students/${id}`, {
+            await axios.delete(`${API_BASE_URL}/students/${id}`, {
                 headers: getAuthHeaders(),
             });
             messageApi.success("Xóa học sinh thành công!");

@@ -195,7 +195,7 @@ const TopNavbar = ({ collapsed }) => {
 
                 <Dropdown overlay={userMenu} trigger={["click"]}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "white" }}>
-                        <Avatar size={35} src={user?.avatar_url || <UserOutlined />} style={{border:"5px solid rgb(0, 147, 239)"}} />
+                        <Avatar size={35} src={user?.avatar_url || <UserOutlined />} style={{border:"2px solid rgb(249, 219, 114)"}} />
                         <span style={{ fontWeight: "bold" }}>{user ? user.full_name : "Người dùng"}</span>
                     </div>
                 </Dropdown>
