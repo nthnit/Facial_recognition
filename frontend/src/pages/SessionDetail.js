@@ -88,9 +88,12 @@ const SessionDetail = () => {
   useEffect(() => {
     fetchSessionInfo();
     fetchSessionStudents();
-    fetchGrades();
     fetchAttendanceData();
   }, [sessionId]);
+
+  useEffect(() => {
+    fetchGrades();
+  }, []);
 
   // Handle attendance changes
   const handleAttendanceChange = (studentId, checked) => {

@@ -2,7 +2,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-ALLOWED_ORIGIN = "http://localhost:3000"  # ✅ Chỉ định frontend được phép truy cập
+ALLOWED_ORIGIN = "http://localhost:3000" 
 
 class CORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -12,7 +12,7 @@ class CORSMiddleware(BaseHTTPMiddleware):
                 "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Authorization, Content-Type",
-                "Access-Control-Allow-Credentials": "true"  # ✅ Bắt buộc khi `withCredentials: true`
+                "Access-Control-Allow-Credentials": "true" 
             }
             return Response(status_code=200, headers=headers)
 
@@ -23,6 +23,6 @@ class CORSMiddleware(BaseHTTPMiddleware):
         response.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-        response.headers["Access-Control-Allow-Credentials"] = "true"  # ✅ Bắt buộc khi `withCredentials: true`
+        response.headers["Access-Control-Allow-Credentials"] = "true" 
 
         return response
