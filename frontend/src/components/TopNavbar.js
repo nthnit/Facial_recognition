@@ -202,7 +202,7 @@ const TopNavbar = ({ collapsed }) => {
 
                 {/* Dropdown hiển thị kết quả tìm kiếm dưới ô input */}
                 <div
-                style={{position:"relative", top:"4.25vh", right:"6.5vw"}}
+                style={{position:"relative", top:"3.6vh", right:"10.5vw"}}
                 >
                     <Dropdown
                     overlay={searchMenu}
