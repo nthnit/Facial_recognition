@@ -261,22 +261,24 @@ def update_class(
 
         while sessions_count < total_sessions:
             if current_date.weekday() in weekly_schedule:
-                day_of_week = current_date.weekday()  # Lấy thứ trong tuần (0 - 6)
+                day_of_week = current_date.weekday() 
 
                 # Lấy giờ bắt đầu và kết thúc từ frontend, sử dụng day_of_week để lấy đúng giờ
                 try:
-                    start_time = class_data.start_time[weekly_schedule.index(day_of_week)]  # Lấy giờ bắt đầu từ dữ liệu frontend
-                    end_time = class_data.end_time[weekly_schedule.index(day_of_week)]  # Lấy giờ kết thúc từ dữ liệu frontend
+                    start_time = class_data.start_time[weekly_schedule.index(day_of_week)] 
+                    end_time = class_data.end_time[weekly_schedule.index(day_of_week)]  
+                    room_id = class_data.room_ids[weekly_schedule.index(day_of_week)]  
                 except IndexError:
-                    raise HTTPException(status_code=400, detail="Số lượng giờ bắt đầu hoặc kết thúc không khớp với số ngày học")
+                    raise HTTPException(status_code=400, detail="Số lượng giờ bắt đầu, kết thúc hoặc phòng học không khớp với số ngày học")
                 
-                if start_time and end_time:
-                    # Tạo session mới với ngày và giờ học
+                if start_time and end_time and room_id:
+                    # Tạo session mới với ngày, giờ học và phòng học
                     new_session = SessionModel(
                         class_id=class_id,
                         date=current_date,
                         start_time=start_time,
-                        end_time=end_time
+                        end_time=end_time,
+                        room_id=room_id  # Lưu phòng học cho buổi học
                     )
                     session_list.append(new_session)
                     sessions_count += 1
@@ -287,20 +289,22 @@ def update_class(
         db.add_all(session_list)
         db.commit()
 
-        # 🔹 Lưu lịch học vào bảng schedules
+        # 🔹 Lưu lịch học vào bảng schedules, bao gồm phòng học
         schedule_objects = []
         for day in weekly_schedule:
             schedule_obj = Schedule(
                 class_id=class_id,
                 day_of_week=day,  # Lưu thứ trong tuần
                 start_time=class_data.start_time[weekly_schedule.index(day)],
-                end_time=class_data.end_time[weekly_schedule.index(day)]
+                end_time=class_data.end_time[weekly_schedule.index(day)],
+                room_id=class_data.room_ids[weekly_schedule.index(day)]  # Lưu phòng học cho lịch học
             )
             schedule_objects.append(schedule_obj)
 
         # Lưu lịch học vào bảng schedules
         db.add_all(schedule_objects)
         db.commit()
+
 
     # Lưu thay đổi vào database
     db.commit()
@@ -321,8 +325,6 @@ def update_class(
         start_time=[class_data.start_time[weekly_schedule.index(day)] for day in weekly_schedule],
         end_time=[class_data.end_time[weekly_schedule.index(day)] for day in weekly_schedule]
     )
-
-
 
 
 
@@ -712,7 +714,7 @@ def get_class_attendance(class_id: int, db: Session = Depends(get_db)):
     return attendance_list
 
 
-#  API lấy lịch dạy của giáo viên
+# API lấy lịch dạy của giáo viên
 @router.get("/teacher/schedule")
 def get_teacher_schedule(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Kiểm tra quyền của người dùng
@@ -733,12 +735,16 @@ def get_teacher_schedule(db: Session = Depends(get_db), current_user: User = Dep
             "class_id": session.class_id,  # ID của lớp học
             "class_name": session.class_obj.name,  # Tên lớp học
             "teacher_name": session.class_obj.teacher.full_name,  # Tên giáo viên
+            "subject": session.class_obj.subject,  # Môn học của lớp
+            "student_count": db.query(SessionStudent).filter(SessionStudent.session_id == session.id).count(),  # Số lượng học sinh trong session
             "date": session.date.strftime("%Y-%m-%d"),  # Ngày học
             "start_time": session.start_time.strftime("%H:%M"),  # Thời gian bắt đầu
             "end_time": session.end_time.strftime("%H:%M"),  # Thời gian kết thúc
         }
         for session in sessions
     ]
+
+
 
 
 # API search

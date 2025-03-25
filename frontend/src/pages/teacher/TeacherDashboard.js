@@ -101,9 +101,9 @@ const TeacherDashboard = () => {
         }, {});
     };
 
-    // Hàm xử lý click vào lớp
-    const handleClassClick = (classId) => {
-        navigate(`/teacher/classes/${classId}`);
+    
+    const handleSessionClick = (sessionID) => {
+        navigate(`/sessions/${sessionID}`);
     };
 
     // Render classes with group by date
@@ -124,7 +124,7 @@ const TeacherDashboard = () => {
                                     extra={
                                         <Button
                                             type="link"
-                                            onClick={() => handleClassClick(item.class_id)} // Xử lý sự kiện click
+                                            onClick={() => handleSessionClick(item.session_id)} // Xử lý sự kiện click
                                         >
                                             Xem chi tiết
                                         </Button>
@@ -132,7 +132,7 @@ const TeacherDashboard = () => {
                                 >
                                     <Text><strong>Giảng viên:</strong> {item.teacher_name}</Text><br />
                                     <Text><strong>Môn học:</strong> {item.subject}</Text><br />
-                                    <Text><strong>Số học sinh:</strong> {item.total_students}</Text><br />
+                                    <Text><strong>Số học sinh:</strong> {item.student_count}</Text><br />
                                     <Text><strong>Thời gian:</strong> {item.start_time} - {item.end_time}</Text>
                                 </Card>
                             </Col>

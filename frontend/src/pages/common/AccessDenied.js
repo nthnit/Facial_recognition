@@ -1,26 +1,31 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
-import { FrownOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import wonderbotVSad from "../../assets/images/verysad.png"
 import usePageTitle from "./usePageTitle";
-
+import logoSB from "../../assets/images/logoSB.svg"
 const AccessDenied = ({ defaultRoute }) => {
     usePageTitle("Access Denied");
     const navigate = useNavigate();
 
     return (
-        <div style={styles.container}>
-            <div style={styles.content}>
-                <FrownOutlined style={styles.icon} />
-                <h1 style={styles.title}>🚫 Oops! Bạn không có quyền truy cập</h1>
-                <p style={styles.description}>
-                    Có vẻ như bạn đang cố gắng truy cập một trang không dành cho bạn. Nhưng đừng lo! Hãy quay lại và tiếp tục khám phá những gì phù hợp với bạn nhé. 😊
-                </p>
-                <Button type="primary" size="large" onClick={() => navigate(defaultRoute || "/")} style={styles.button}>
-                    🔙 Quay về trang chính
-                </Button>
+        <>
+            <img src={logoSB} alt="Logo" style={styles.logo} />
+            <div style={styles.container}>
+                <div style={styles.content}>
+                    <img src={wonderbotVSad} alt="Wonderbot Searching" style={styles.image} />
+                    <h1 style={styles.title}>🚫 Oops! Bạn không có quyền truy cập</h1>
+                    <p style={styles.description}>
+                        Có vẻ như bạn đang cố gắng truy cập một trang không dành cho bạn. Nhưng đừng lo! Hãy quay lại và tiếp tục khám phá những gì phù hợp với bạn nhé. 😊
+                    </p>
+                    <Button type="primary" size="large" onClick={() => navigate(defaultRoute || "/")} style={styles.button}>
+                        <ArrowLeftOutlined />  Quay về trang chính
+                    </Button>
+                </div>
             </div>
-        </div>
+        </>
+        
     );
 };
 
@@ -57,6 +62,18 @@ const styles = {
     button: {
         fontSize: "16px",
         padding: "10px 20px",
+    },
+    image: {
+        width: "200px", 
+        height: "auto",
+        marginBottom: "20px",
+    },
+    logo: {
+        position: "absolute",
+        top: "25px",
+        left: "25px",
+        width: "80px",
+        height: "auto",
     },
 };
 

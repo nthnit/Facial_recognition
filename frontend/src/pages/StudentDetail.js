@@ -164,14 +164,41 @@ const StudentDetail = () => {
 
     const exportToPDF = () => {
         const doc = new jsPDF();
-        doc.text(`Thông tin Học Sinh: ${student.full_name}`, 10, 10);
-        doc.text(`Mã sinh viên: ${student.id}`, 10, 20);
-        doc.text(`Email: ${student.email}`, 10, 30);
-        doc.text(`Số điện thoại: ${student.phone_number}`, 10, 40);
-        doc.text(`Địa chỉ: ${student.address}`, 10, 50);
-        doc.text(`Ngày sinh: ${moment(student.date_of_birth).format("DD-MM-YYYY")}`, 10, 60);
+        const margin = 10;
+        const yStart = 10;
+
+        // Phần 1: Basic Info (Thông tin cơ bản)
+        const image = student.image; 
+
+        // Thêm ảnh vào PDF (kiểm tra nếu có ảnh)
+        if (image) {
+            const imgWidth = 40; // Chiều rộng của ảnh
+            const imgHeight = 40; // Chiều cao của ảnh
+            doc.addImage(image, "JPEG", margin, yStart, imgWidth, imgHeight);
+        }
+
+        // Thông tin học sinh
+        doc.text(`Student: ${student.full_name}`, margin + 50, yStart + 10);
+        doc.text(`Student ID: ${student.id}`, margin + 50, yStart + 20);
+        doc.text(`Email: ${student.email}`, margin + 50, yStart + 30); 
+        doc.text(`Phone: ${student.phone_number}`, margin + 50, yStart + 40); 
+        doc.text(`Address: ${student.address}`, margin + 50, yStart + 50); 
+        doc.text(`Date of Birth: ${moment(student.date_of_birth).format("DD-MM-YYYY")}`, margin + 50, yStart + 60); 
+
+        // Phần 2: Classes (Danh sách các lớp học)
+        doc.text("Classes:", margin, yStart + 80); 
+        let yPosition = yStart + 90;
+
+        fetchStudentClasses();
+        classes.forEach((classObj, index) => {
+            doc.text(`${index + 1}. ${classObj.class_name} - ${classObj.status}`, margin, yPosition); 
+            yPosition += 10; 
+        });
+
+        // Lưu file PDF
         doc.save(`Student_${student.id}.pdf`);
     };
+
 
     if (!student) return <div>Đang tải...</div>;
 
@@ -183,7 +210,7 @@ const StudentDetail = () => {
                 <Breadcrumb.Item>
                     <Link to="/manager/students">Quản lý học sinh</Link>
                 </Breadcrumb.Item>
-                <Breadcrumb.Item>{student.full_name}</Breadcrumb.Item>
+                <Breadcrumb.Item>{student.id} - {student.full_name}</Breadcrumb.Item>
             </Breadcrumb>
 
             <Card
@@ -329,14 +356,19 @@ const StudentDetail = () => {
                     <Table
                         columns={[
                             {
-                                title: "Tên lớp học",
-                                dataIndex: "class_name",
-                                key: "class_name",
+                                title: "Mã buổi học",
+                                dataIndex: "session_id",
+                                key: "class_session_idname",
                                 render: (text, record) => (
-                                    <Link to={`/manager/classes/${record.class_id}`} style={{ color: "blue" }}>
+                                    <Link to={`/sessions/${record.session_id}`} style={{ color: "blue" }}>
                                         {text}
                                     </Link>
                                 ),
+                            },
+                            {
+                                title: "Tên lớp học",
+                                dataIndex: "class_name",
+                                key: "class_name",
                             },
                             { title: "Mã lớp", dataIndex: "class_code", key: "class_code" }, // ✅ Mã lớp
                             {

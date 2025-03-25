@@ -142,7 +142,7 @@ const TeacherDetail = () => {
             <p><strong>Tên giáo viên:</strong> {teacherInfo.full_name}</p>
             <p><strong>Email:</strong> {teacherInfo.email}</p>
             <p><strong>Số điện thoại:</strong> {teacherInfo.phone_number}</p>
-            <p><strong>Ngày sinh:</strong> {moment(teacherInfo.dob).format("DD-MM-YYYY")}</p>
+            <p><strong>Ngày sinh:</strong> {moment(teacherInfo.date_of_birth).format("DD-MM-YYYY")}</p>
             <p><strong>Giới tính:</strong> {teacherInfo.gender === "male" ? "Nam" : teacherInfo.gender === "female" ? "Nữ" : "Khác"}</p>
             <p><strong>Địa chỉ:</strong> {teacherInfo.address || "Chưa cập nhật"}</p>
             
@@ -189,15 +189,17 @@ const TeacherDetail = () => {
           <Table
             dataSource={filteredSchedules}
             columns={[
+              { title: "Mã tiết học", dataIndex: "session_id", key: "session_id", render: (text, record) => <Link to={`/sessions/${record.session_id}`}>{text}</Link> },
               {
                 title: "Ngày",
                 dataIndex: "date",
                 key: "date",
                 render: (date) => moment(date).format("DD-MM-YYYY"),
               },
+              { title: "Lớp", dataIndex: "class_name", key: "class_name" },
               { title: "Giờ bắt đầu", dataIndex: "start_time", key: "start_time" },
               { title: "Giờ kết thúc", dataIndex: "end_time", key: "end_time" },
-              { title: "Lớp", dataIndex: "class_name", key: "class_name" },
+              { title: "Sĩ số", dataIndex: "student_count", key: "student_count" },
             ]}
             rowKey="id"
             pagination={false}

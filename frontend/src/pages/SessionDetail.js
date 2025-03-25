@@ -63,7 +63,7 @@ const SessionDetail = () => {
       });
       setStudentsWithGrades(response.data);
     } catch (error) {
-      message.error("Buổi học này chưa có học sinh nào được nhập điểm");
+      message.warning("Buổi học này chưa có học sinh nào được nhập điểm");
     }
   };
   const fetchAttendanceData = async () => {

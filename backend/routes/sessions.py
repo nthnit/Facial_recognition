@@ -95,7 +95,6 @@ def get_session_info(session_id: int, db: Session = Depends(get_db)):
 
 # API Lấy danh sách điểm danh của session theo session_id
 @router.get("/{session_id}/attendance", response_model=List[SessionAttendanceResponse])
-@router.get("/sessions/{session_id}/attendance", response_model=List[SessionAttendanceResponse])
 def get_attendance_of_session(
     session_id: int,
     db: Session = Depends(get_db),

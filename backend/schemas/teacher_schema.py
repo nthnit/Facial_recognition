@@ -7,6 +7,7 @@ class TeacherCreate(BaseModel):
     email: EmailStr
     phone_number: Optional[str] = ""
     date_of_birth: Optional[date] = None
+    address: Optional[str] = ""
 
 class TeacherUpdate(BaseModel):
     full_name: Optional[str] = None
@@ -14,6 +15,7 @@ class TeacherUpdate(BaseModel):
     phone_number: Optional[str] = None
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
+    address: Optional[str] = ""
 
 class TeacherResponse(BaseModel):
     id: int
@@ -40,6 +42,7 @@ class TeacherScheduleResponse(BaseModel):
     date: str
     start_time: str
     end_time: str
+    student_count: int
 
     class Config:
         orm_mode = True

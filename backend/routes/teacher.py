@@ -4,6 +4,7 @@ from database.mysql import get_db
 from models.user import User
 from models.class_model import Class
 from models.session_model import Session as SessionModel
+from models.session_student_model import SessionStudent
 from models.class_students_model import ClassStudent
 from schemas.teacher_schema import TeacherCreate, TeacherUpdate, TeacherResponse, TeacherScheduleResponse
 from schemas.class_schema import ClassTeacherResponse
@@ -60,7 +61,7 @@ def create_teacher(
     date_of_birth = teacher_data.date_of_birth if teacher_data.date_of_birth else "2000-01-01"
 
     # Mật khẩu mặc định khi tạo tài khoản giáo viên
-    default_password = "Teacher123!"
+    default_password = "Active123!"
     hashed_password = hash_password(default_password)
 
     new_teacher = User(
@@ -68,6 +69,7 @@ def create_teacher(
         full_name=teacher_data.full_name,
         password=hashed_password,
         phone_number=teacher_data.phone_number,
+        address=teacher_data.address,
         role="teacher",
         date_of_birth=date_of_birth  # ✅ Gán giá trị mặc định nếu NULL
     )
@@ -99,6 +101,7 @@ def update_teacher(
     teacher.date_of_birth = teacher_data.date_of_birth
     teacher.email = teacher_data.email
     teacher.gender = teacher_data.gender  # ✅ Thêm trư��ng gender vào model User
+    teacher.address=teacher_data.address,
 
     db.commit()
     db.refresh(teacher)
@@ -199,6 +202,7 @@ def get_teacher_schedule_by_id(
             "date": session.date.strftime("%Y-%m-%d"),  # Ngày học
             "start_time": session.start_time.strftime("%H:%M"),  # Thời gian bắt đầu
             "end_time": session.end_time.strftime("%H:%M"),  # Thời gian kết thúc
+            "student_count": db.query(SessionStudent).filter(SessionStudent.session_id == session.id).count() 
         }
         for session in sessions
     ]

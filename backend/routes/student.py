@@ -4,6 +4,7 @@ from database.mysql import get_db
 from models.student_model import Student
 from models.user import User
 from models.class_model import Class
+from models.session_student_model import SessionStudent
 from models.class_students_model import ClassStudent
 from schemas.class_schema import ClassResponse
 from schemas.student_schema import StudentCreate, StudentUpdate, StudentResponse
@@ -258,9 +259,11 @@ def get_student_classes(
     if not student:
         raise HTTPException(status_code=404, detail="Học sinh không tồn tại")
 
+    # Truy vấn lớp học và thông tin giáo viên liên quan
     classes = (
-        db.query(Class)
+        db.query(Class, User.full_name.label("teacher_name"))  # Thêm thông tin tên giáo viên
         .join(ClassStudent, Class.id == ClassStudent.class_id)
+        .join(User, User.id == Class.teacher_id)  # Kết hợp với bảng Teacher để lấy tên giáo viên
         .filter(ClassStudent.student_id == student_id)
         .all()
     )
@@ -273,15 +276,18 @@ def get_student_classes(
             name=class_obj.name,
             subject=class_obj.subject,
             teacher_id=class_obj.teacher_id,
+            teacher_name=teacher_name,  # Trả về tên giáo viên
             start_date=class_obj.start_date,
             end_date=class_obj.end_date,
             total_sessions=class_obj.total_sessions,
-            status= class_obj.status,
+            status=class_obj.status,
             weekly_schedule=[int(day) for day in class_obj.weekly_schedule.split(",")] if class_obj.weekly_schedule else []
         )
-        for class_obj in classes
+        for class_obj, teacher_name in classes  # Lấy cả thông tin lớp học và tên giáo viên từ kết quả truy vấn
     ]
+
     
+
 # API lấy danh sách buổi học (sessions) của học sinh
 
 @router.get("/{student_id}/sessions", response_model=List[StudentSessionResponse])
@@ -297,11 +303,12 @@ def get_student_sessions(
     if not student:
         raise HTTPException(status_code=404, detail="Học sinh không tồn tại")
 
+    # Thay vì lấy từ ClassStudent, ta lấy từ SessionStudent để truy vấn các buổi học của học sinh
     sessions = (
         db.query(SessionModel, Class.name.label("class_name"), Class.class_code.label("class_code"))
-        .join(ClassStudent, SessionModel.class_id == ClassStudent.class_id)
+        .join(SessionStudent, SessionModel.id == SessionStudent.session_id)
         .join(Class, Class.id == SessionModel.class_id)
-        .filter(ClassStudent.student_id == student_id)
+        .filter(SessionStudent.student_id == student_id)
         .order_by(SessionModel.date.asc())
         .all()
     )
@@ -321,8 +328,8 @@ def get_student_sessions(
         )
 
         total_students = (
-            db.query(ClassStudent)
-            .filter(ClassStudent.class_id == session.class_id)
+            db.query(SessionStudent)
+            .filter(SessionStudent.session_id == session.id)
             .count()
         )
 
@@ -332,7 +339,7 @@ def get_student_sessions(
             session_id=session.id,
             class_id=session.class_id,
             class_name=class_name,
-            class_code=class_code,  # ✅ Thêm class_code
+            class_code=class_code, 
             date=session.date,
             weekday=session.date.strftime("%A"),
             start_time=session.start_time.strftime("%H:%M"),
@@ -342,6 +349,7 @@ def get_student_sessions(
         ))
 
     return session_list
+
 
 
 # API tìm kiếm học sinh

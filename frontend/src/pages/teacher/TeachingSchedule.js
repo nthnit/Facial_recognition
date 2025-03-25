@@ -92,6 +92,11 @@ const TeachingSchedule = () => {
         setModalContent(null);
     };
 
+    // Hàm để điều hướng tới trang chi tiết tiết học
+    const handleGoToSessionDetail = (sessionId) => {
+        navigate(`/sessions/${sessionId}`); // Điều hướng đến trang chi tiết tiết học
+    };
+
     return (
         <div style={{ padding: "20px" }}>
             <Title level={2} style={{ textAlign: "center" }}>
@@ -112,11 +117,19 @@ const TeachingSchedule = () => {
                 onOk={handleOk}
                 onCancel={handleCancel}
                 footer={[
+                    
+                    modalContent && (
+                        <Button
+                            key="goToClass"
+                            type="primary"
+                            onClick={() => handleGoToSessionDetail(modalContent.session_id)}
+                            style={{ width: "auto",  textAlign: "center" }}
+                        >
+                            Đi đến tiết học
+                        </Button>
+                    ),
                     <Button key="back" onClick={handleCancel} style={{ width: "100px" }}>
                         Hủy
-                    </Button>,
-                    <Button key="submit" type="primary" onClick={handleOk} style={{ width: "100px" }}>
-                        Đóng
                     </Button>,
                 ]}
                 width={600}
@@ -129,6 +142,10 @@ const TeachingSchedule = () => {
                             <Text>{modalContent.class_name}</Text>
                         </Col>
                         <Col span={24}>
+                            <Text strong>Sĩ số:</Text>
+                            <Text>{modalContent.student_count}</Text>
+                        </Col>
+                        <Col span={24}>
                             <Text strong>Giảng viên:</Text>
                             <Text>{modalContent.teacher_name}</Text>
                         </Col>
@@ -137,8 +154,8 @@ const TeachingSchedule = () => {
                             <Text>{modalContent.start_time} - {modalContent.end_time}</Text>
                         </Col>
                         <Col span={24}>
-                            <Text strong>Chủ đề:</Text>
-                            <Text>{modalContent.topic}</Text>
+                            <Text strong>Môn học:</Text>
+                            <Text>{modalContent.subject}</Text>
                         </Col>
                         <Col span={24}>
                             <Text strong>Ngày học:</Text>
