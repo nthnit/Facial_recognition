@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button, Modal, message, Spin, List, Divider, Table, Tag } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, QrcodeOutlined } from '@ant-design/icons';
 import Webcam from 'react-webcam';
-import axios from 'axios';
-import API_BASE_URL from "../api/config";
+import { sendFaceAttendance, fetchClassStudents, fetchSessionAttendance } from '../api/faceAttendance';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -35,35 +34,26 @@ const FaceAttendance = () => {
 
   const captureFrame = useCallback(async () => {
     if (!webcamRef.current || loading) return;
-
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
-
-    const base64String = imageSrc.split(',')[1]; // Chỉ lấy phần base64
-
+    const base64String = imageSrc.split(',')[1];
     try {
       setLoading(true);
-      const response = await axios.post(
-        `${API_BASE_URL}/attendance/face-attendance`,
-        {
-          image: base64String,
-          class_id: parseInt(classId, 10),
-          session_date: sessionDate,
-        },
-        { headers: getAuthHeaders() }
-      );
-
-      const { student_id, full_name } = response.data;
-
+      const response = await sendFaceAttendance({
+        image: base64String,
+        classId,
+        sessionDate,
+      });
+      const { student_id, full_name } = response;
       if (student_id && !recognizedStudents.some(s => s.student_id === student_id)) {
         setRecognizedStudents(prev => [...prev, { student_id, full_name }]);
         message.success(`Đã điểm danh: ${full_name}`);
       }
       setSessionStatus('Đang nhận diện khuôn mặt...');
     } catch (error) {
-      console.error('Error in face attendance:', error.response?.data || error);
-      if (error.response?.status === 401) {
+      if (error.message === 'Unauthorized') {
         message.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!');
+        localStorage.removeItem('token');
         navigate('/login');
       } else if (error.response?.status === 403) {
         message.error('Bạn không có quyền thực hiện điểm danh này!');
@@ -93,36 +83,26 @@ const FaceAttendance = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/classes/${classId}/students`,
-          { headers: getAuthHeaders() }
-        );
-        setStudentsData(response.data);
+        const data = await fetchClassStudents(classId);
+        setStudentsData(data);
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách học sinh:', error);
         message.error('Không thể lấy danh sách học sinh.');
       }
     };
-
-    fetchStudents();
+    if (classId) fetchStudents();
   }, [classId]);
 
   // Fetch attendance status for the session
   useEffect(() => {
     const fetchAttendanceStatus = async () => {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/classes/${classId}/sessions/${sessionDate}/attendance`,
-          { headers: getAuthHeaders() }
-        );
-        setAttendanceData(response.data);
+        const data = await fetchSessionAttendance(classId, sessionDate);
+        setAttendanceData(data);
       } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu điểm danh:', error);
         message.error('Không thể lấy dữ liệu điểm danh.');
       }
     };
-
-    fetchAttendanceStatus();
+    if (classId && sessionDate) fetchAttendanceStatus();
   }, [classId, sessionDate]);
 
   const handleClose = () => {
@@ -192,7 +172,7 @@ const FaceAttendance = () => {
         onClick={() => setIsQRModalOpen(true)}
         style={{ marginBottom: 16 }}
       >
-        Tạo mã QR cho buổi học này
+        <QrcodeOutlined />Tạo mã QR cho buổi học này
       </Button>
       <Modal
         title="Mã QR điểm danh khuôn mặt (không cần đăng nhập)"

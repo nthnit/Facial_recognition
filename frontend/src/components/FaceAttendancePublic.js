@@ -1,8 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button, Modal, message, Spin, List, Divider, Table, Tag } from 'antd';
 import Webcam from 'react-webcam';
-import axios from 'axios';
-import API_BASE_URL from "../api/config";
+import { sendFaceAttendancePublic } from '../api/faceAttendance';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const FaceAttendancePublic = () => {
@@ -25,15 +24,12 @@ const FaceAttendancePublic = () => {
     const base64String = imageSrc.split(',')[1];
     try {
       setLoading(true);
-      const response = await axios.post(
-        `${API_BASE_URL}/attendance/face-attendance/public`,
-        {
-          image: base64String,
-          class_id: parseInt(classId, 10),
-          session_date: sessionDate,
-        }
-      );
-      const { student_id, full_name } = response.data;
+      const response = await sendFaceAttendancePublic({
+        image: base64String,
+        classId,
+        sessionDate,
+      });
+      const { student_id, full_name } = response;
       if (student_id && !recognizedStudents.some(s => s.student_id === student_id)) {
         setRecognizedStudents(prev => [...prev, { student_id, full_name }]);
         message.success(`Đã điểm danh: ${full_name}`);
