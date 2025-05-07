@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { Card, Typography, Button, Space, Modal, Form, Input, message, Popconfirm, DatePicker, Breadcrumb, Table, Tabs, Upload } from "antd";
-import { EditOutlined, DeleteOutlined, FilePdfOutlined, UploadOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import wonderbotSearching from "../assets/images/apollo_robot.162763f5b5ae3d3729e593515018f621.svg"
-import axios from "axios";
-import API_BASE_URL from "../api/config";
-import jsPDF from "jspdf"; // ✅ Import jsPDF để xuất PDF
 import moment from "moment";
+import {
+    fetchStudentDetail,
+    fetchStudentClasses,
+    fetchStudentSessions,
+    updateStudent,
+    deleteStudent,
+    uploadStudentImage
+} from "../api/students";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
+
 const StudentDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -17,70 +23,31 @@ const StudentDetail = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [form] = Form.useForm();
     const [messageApi, contextHolder] = message.useMessage();
-    const [classes, setClasses] = useState([]); // ✅ Danh sách lớp học
-    const [sessions, setSessions] = useState([]); // ✅ Danh sách buổi học
+    const [classes, setClasses] = useState([]);
+    const [sessions, setSessions] = useState([]);
     const [uploading, setUploading] = useState(false);
-    // Lấy token từ localStorage để gửi trong request
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login");
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
 
     useEffect(() => {
-        fetchStudent();
-        fetchStudentClasses();
-        fetchStudentSessions();
+        loadData();
     }, []);
 
-    const fetchStudent = async () => {
+    const loadData = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/students/${id}`, {
-                headers: getAuthHeaders(),
-            });
-            setStudent(response.data);
+            const [studentData, classesData, sessionsData] = await Promise.all([
+                fetchStudentDetail(id),
+                fetchStudentClasses(id),
+                fetchStudentSessions(id)
+            ]);
+            setStudent(studentData);
+            setClasses(classesData);
+            setSessions(sessionsData);
         } catch (error) {
-            handleRequestError(error, "Lỗi khi tải thông tin học sinh.");
-        }
-    };
-
-    // ✅ API lấy danh sách lớp mà học sinh tham gia
-    const fetchStudentClasses = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/students/${id}/classes`, {
-                headers: getAuthHeaders(),
-            });
-            setClasses(response.data);
-        } catch (error) {
-            message.error("Lỗi khi tải danh sách lớp học của học sinh.");
-        }
-    };
-
-    // ✅ API lấy danh sách buổi học (sessions) của học sinh
-    const fetchStudentSessions = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/students/${id}/sessions`, {
-                headers: getAuthHeaders(),
-            });
-            setSessions(response.data);
-        } catch (error) {
-            message.error("Lỗi khi tải danh sách buổi học.");
-        }
-    };
-
-
-    const handleRequestError = (error, defaultMessage) => {
-        if (error.response?.status === 401) {
-            message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-            localStorage.removeItem("token");
-            navigate("/login");
-        } else if (error.response?.status === 403) {
-            message.error("Bạn không có quyền thực hiện thao tác này!");
-        } else {
-            message.error(defaultMessage);
+            if (error.message === "Unauthorized") {
+                message.error("Bạn chưa đăng nhập!");
+                navigate("/login");
+            } else {
+                message.error("Lỗi khi tải dữ liệu học sinh.");
+            }
         }
     };
 
@@ -92,60 +59,34 @@ const StudentDetail = () => {
                 date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : "2000-01-01",
             };
 
-            await axios.put(`${API_BASE_URL}/students/${id}`, payload, {
-                headers: getAuthHeaders(),
-            });
+            await updateStudent(id, payload);
             messageApi.success("Cập nhật thông tin thành công!");
             setIsModalOpen(false);
-            fetchStudent();
+            loadData();
         } catch (error) {
-            handleRequestError(error, "Lỗi khi cập nhật.");
+            message.error("Lỗi khi cập nhật thông tin học sinh.");
         }
     };
 
-    // Xử lý upload ảnh lên Cloudinary
     const handleUpload = async ({ file }) => {
         setUploading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-        
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                message.error("Bạn chưa đăng nhập!");
-                navigate("/login");
-                return;
-            }
-        
-            const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`, // Gửi token khi upload ảnh
-                },
-            });
-        
-            // Lấy URL từ Cloudinary và set vào form
-            form.setFieldsValue({ image_url: response.data.image_url });
-            message.success("Ảnh đã tải lên Cloudinary!");
+            const response = await uploadStudentImage(file);
+            form.setFieldsValue({ image_url: response.image_url });
+            message.success("Ảnh đã tải lên thành công!");
         } catch (error) {
-            if (error.response?.status === 403) {
-                message.error("Bạn không có quyền upload ảnh.");
-            } else {
-                message.error("Lỗi khi tải ảnh lên Cloudinary.");
-            }
+            message.error("Lỗi khi tải ảnh lên.");
         }
         setUploading(false);
     };
 
     const handleDelete = async () => {
         try {
-            await axios.delete(`${API_BASE_URL}/students/${id}`, {
-                headers: getAuthHeaders(),
-            });
+            await deleteStudent(id);
             messageApi.success("Xóa học sinh thành công!");
             navigate("/students");
         } catch (error) {
-            handleRequestError(error, "Lỗi khi xóa học sinh.");
+            message.error("Lỗi khi xóa học sinh.");
         }
     };
 
@@ -155,50 +96,11 @@ const StudentDetail = () => {
             email: student.email,
             phone_number: student.phone_number,
             address: student.address,
-            date_of_birth: student.date_of_birth ? moment(student.date_of_birth) : null, // Convert to Moment for DatePicker
-            image_url: student.image || "", // Prefill with student image
+            date_of_birth: student.date_of_birth ? moment(student.date_of_birth) : null,
+            image_url: student.image || "",
         });
         setIsModalOpen(true);
     };
-    
-
-    const exportToPDF = () => {
-        const doc = new jsPDF();
-        const margin = 10;
-        const yStart = 10;
-
-        // Phần 1: Basic Info (Thông tin cơ bản)
-        const image = student.image; 
-
-        // Thêm ảnh vào PDF (kiểm tra nếu có ảnh)
-        if (image) {
-            const imgWidth = 40; // Chiều rộng của ảnh
-            const imgHeight = 40; // Chiều cao của ảnh
-            doc.addImage(image, "JPEG", margin, yStart, imgWidth, imgHeight);
-        }
-
-        // Thông tin học sinh
-        doc.text(`Student: ${student.full_name}`, margin + 50, yStart + 10);
-        doc.text(`Student ID: ${student.id}`, margin + 50, yStart + 20);
-        doc.text(`Email: ${student.email}`, margin + 50, yStart + 30); 
-        doc.text(`Phone: ${student.phone_number}`, margin + 50, yStart + 40); 
-        doc.text(`Address: ${student.address}`, margin + 50, yStart + 50); 
-        doc.text(`Date of Birth: ${moment(student.date_of_birth).format("DD-MM-YYYY")}`, margin + 50, yStart + 60); 
-
-        // Phần 2: Classes (Danh sách các lớp học)
-        doc.text("Classes:", margin, yStart + 80); 
-        let yPosition = yStart + 90;
-
-        fetchStudentClasses();
-        classes.forEach((classObj, index) => {
-            doc.text(`${index + 1}. ${classObj.class_name} - ${classObj.status}`, margin, yPosition); 
-            yPosition += 10; 
-        });
-
-        // Lưu file PDF
-        doc.save(`Student_${student.id}.pdf`);
-    };
-
 
     if (!student) return <div>Đang tải...</div>;
 
@@ -222,9 +124,8 @@ const StudentDetail = () => {
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                    {/* Ảnh đại diện */}
                     <img
-                        src={student.image || "https://via.placeholder.com/150"} // Nếu không có ảnh, hiển thị ảnh mặc định
+                        src={student.image || "https://via.placeholder.com/150"}
                         alt="Ảnh học sinh"
                         style={{
                             width: "150px",
@@ -235,7 +136,6 @@ const StudentDetail = () => {
                         }}
                     />
 
-                    {/* Thông tin cá nhân */}
                     <div style={{ flex: 1 }}>
                         <Title level={3} style={{ marginBottom: 10, color: "#1890ff" }}>
                             {student.full_name}
@@ -259,7 +159,6 @@ const StudentDetail = () => {
                     </div>
                 </div>
 
-                {/* Nút hành động */}
                 <div style={{ textAlign: "center", marginTop: "20px" }}>
                     <Space>
                         <Button icon={<EditOutlined />} type="primary" onClick={() => showUpdateModal(true)}>
@@ -270,17 +169,11 @@ const StudentDetail = () => {
                                 Xóa
                             </Button>
                         </Popconfirm>
-                        <Button icon={<FilePdfOutlined />} onClick={exportToPDF}>
-                            Xuất PDF
-                        </Button>
                     </Space>
                 </div>
             </Card>
 
-
-            {/* ✅ Tabs */}
             <Tabs defaultActiveKey="1" style={{ marginTop: 20 }}>
-                {/* ✅ Tab 1: Danh sách lớp học */}
                 <TabPane tab="Lớp học đã tham gia" key="1">
                     {classes.length > 0 ? (
                         <div
@@ -329,7 +222,6 @@ const StudentDetail = () => {
                             ))}
                         </div>
                     ) : (
-                        // **UI when there are no classes available**
                         <div style={{
                             textAlign: "center",
                             padding: "40px",
@@ -350,8 +242,6 @@ const StudentDetail = () => {
                     )}
                 </TabPane>
 
-
-                {/* ✅ Tab 2: Danh sách buổi học */}
                 <TabPane tab="Danh sách buổi học" key="2">
                     <Table
                         columns={[
@@ -370,18 +260,18 @@ const StudentDetail = () => {
                                 dataIndex: "class_name",
                                 key: "class_name",
                             },
-                            { title: "Mã lớp", dataIndex: "class_code", key: "class_code" }, // ✅ Mã lớp
+                            { title: "Mã lớp", dataIndex: "class_code", key: "class_code" },
                             {
                                 title: "Ngày",
                                 dataIndex: "date",
                                 key: "date",
                                 render: (date) => moment(date).format("DD-MM-YYYY"),
                             },
-                            { title: "Thứ", dataIndex: "weekday", key: "weekday" }, // ✅ Thứ trong tuần
+                            { title: "Thứ", dataIndex: "weekday", key: "weekday" },
                             {
                                 title: "Thời gian",
                                 key: "time",
-                                render: (_, record) => `${record.start_time} - ${record.end_time}`, // ✅ Thời gian bắt đầu - kết thúc
+                                render: (_, record) => `${record.start_time} - ${record.end_time}`,
                             },
                             {
                                 title: "Trạng thái điểm danh",
@@ -404,11 +294,10 @@ const StudentDetail = () => {
                         pagination={{ pageSize: 5 }}
                     />
                 </TabPane>
-
             </Tabs>
             
             <Modal title="Cập nhật thông tin" open={isModalOpen} onOk={handleUpdate} onCancel={() => setIsModalOpen(false)}>
-            <Form form={form} layout="vertical">
+                <Form form={form} layout="vertical">
                     <Form.Item label="Họ và Tên" name="full_name" rules={[{ required: true, message: "Vui lòng nhập họ tên!" }]}>
                         <Input />
                     </Form.Item>
@@ -431,7 +320,7 @@ const StudentDetail = () => {
                     </Form.Item>
                     <Form.Item label="Ảnh đã tải lên" name="image_url">
                         <Input placeholder="Đường dẫn ảnh" readOnly />
-                     </Form.Item>
+                    </Form.Item>
                 </Form>
             </Modal>
         </div>

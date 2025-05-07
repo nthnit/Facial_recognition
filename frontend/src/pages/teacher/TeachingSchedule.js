@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Button, Modal, Row, Col, Typography, Card } from "antd";
+import { Calendar, Button, Modal, Row, Col, Typography, Card, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
+import { fetchTeacherSchedule } from "../../api/teacherClasses";
 
 const { Title, Text } = Typography;
 
@@ -18,16 +17,12 @@ const TeachingSchedule = () => {
         fetchTeachingSchedule();
     }, []);
 
-    // Hàm lấy lịch giảng dạy từ API
     const fetchTeachingSchedule = async () => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(`${API_BASE_URL}/classes/teacher/schedule`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
+            const data = await fetchTeacherSchedule();
+            
             // Chuyển đổi dữ liệu thành dạng object với key là ngày (YYYY-MM-DD)
-            const schedule = response.data.reduce((acc, item) => {
+            const schedule = data.reduce((acc, item) => {
                 const dateStr = item.date;
                 if (!acc[dateStr]) {
                     acc[dateStr] = [];
@@ -37,7 +32,12 @@ const TeachingSchedule = () => {
             }, {});
             setClassSchedule(schedule);
         } catch (error) {
-            console.error("Lỗi khi tải lịch giảng dạy:", error);
+            if (error.message === "Unauthorized") {
+                message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+                navigate("/login");
+            } else {
+                message.error("Lỗi khi tải lịch giảng dạy.");
+            }
         }
     };
 

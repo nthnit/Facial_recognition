@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, Select } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PoweroffOutlined } from "@ant-design/icons";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 import { Link } from "react-router-dom";
+import { fetchRooms, createRoom, updateRoom, deleteRoom, changeRoomStatus } from "../../api/rooms";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-
 
 const RoomManagement = () => {
   usePageTitle("Room Management");
@@ -23,36 +21,32 @@ const RoomManagement = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  // Lấy token từ localStorage để gửi trong request
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      message.error("Bạn chưa đăng nhập!");
-      navigate("/login");
-    }
-    return { Authorization: `Bearer ${token}` };
-  };
-
-  // Fetch danh sách phòng học từ API
   useEffect(() => {
-    fetchRooms();
+    fetchRoomsData();
   }, []);
 
-  const fetchRooms = async () => {
+  const fetchRoomsData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/rooms`, {
-        headers: getAuthHeaders(),
-      });
-      setRooms(response.data);
-      setFilteredRooms(response.data); // Cập nhật danh sách đã lọc
+      const data = await fetchRooms();
+      setRooms(data);
+      setFilteredRooms(data);
     } catch (error) {
-      message.error("Lỗi khi tải danh sách phòng học.");
+      handleRequestError(error, "Lỗi khi tải danh sách phòng học.");
     }
     setLoading(false);
   };
 
-  // Tìm kiếm phòng học
+  const handleRequestError = (error, defaultMessage) => {
+    if (error.message === "Unauthorized") {
+      message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+      localStorage.removeItem("token");
+      navigate("/login");
+    } else {
+      message.error(defaultMessage);
+    }
+  };
+
   const handleSearch = (e) => {
     const value = e.target.value.toLowerCase();
     setSearchText(value);
@@ -66,7 +60,6 @@ const RoomManagement = () => {
     setFilteredRooms(filtered);
   };
 
-  // Thêm phòng mới hoặc chỉnh sửa phòng
   const showModal = (room = null) => {
     setEditingRoom(room);
     setIsModalOpen(true);
@@ -81,7 +74,7 @@ const RoomManagement = () => {
             room_name: "",
             capacity: 0,
             location: "",
-            status: "Active", // mặc định trạng thái là Active
+            status: "Active",
           }
     );
   };
@@ -92,53 +85,37 @@ const RoomManagement = () => {
       const payload = { ...values };
 
       if (editingRoom) {
-        // Cập nhật phòng
-        await axios.put(`${API_BASE_URL}/rooms/${editingRoom.id}`, payload, {
-          headers: getAuthHeaders(),
-        });
+        await updateRoom(editingRoom.id, payload);
         message.success("Cập nhật thông tin phòng thành công!");
       } else {
-        // Thêm phòng mới
-        await axios.post(`${API_BASE_URL}/rooms`, payload, {
-          headers: getAuthHeaders(),
-        });
+        await createRoom(payload);
         message.success("Thêm phòng học mới thành công!");
       }
-      fetchRooms();
+      fetchRoomsData();
       setIsModalOpen(false);
       form.resetFields();
     } catch (error) {
-      message.error("Lỗi khi lưu thông tin phòng học.");
+      handleRequestError(error, "Lỗi khi lưu thông tin phòng học.");
     }
   };
 
-  // Xóa phòng
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/rooms/${id}`, {
-        headers: getAuthHeaders(),
-      });
+      await deleteRoom(id);
       message.success("Xóa phòng học thành công!");
-      fetchRooms();
+      fetchRoomsData();
     } catch (error) {
-      message.error("Lỗi khi xóa phòng học.");
+      handleRequestError(error, "Lỗi khi xóa phòng học.");
     }
   };
 
-  // Thay đổi trạng thái phòng (Active/Deactive)
   const handleStatusChange = async (id, status) => {
     try {
-      await axios.put(
-        `${API_BASE_URL}/rooms/${id}/change-status`,
-        { status: status === "Active" ? "Deactive" : "Active" },
-        {
-          headers: getAuthHeaders(),
-        }
-      );
+      await changeRoomStatus(id, status === "Active" ? "Deactive" : "Active");
       message.success(`Cập nhật trạng thái phòng thành công!`);
-      fetchRooms();
+      fetchRoomsData();
     } catch (error) {
-      message.error("Lỗi khi thay đổi trạng thái phòng học.");
+      handleRequestError(error, "Lỗi khi thay đổi trạng thái phòng học.");
     }
   };
 
@@ -183,7 +160,7 @@ const RoomManagement = () => {
         </Space>
       ),
     },
-];
+  ];
 
   return (
     <div style={{ padding: 20 }}>

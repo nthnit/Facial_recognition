@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Table, Button, Input, Space, Modal, Form, message, DatePicker, Select, TimePicker } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import * as XLSX from "xlsx";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
-import API_BASE_URL from "../../api/config"
+import { fetchClasses, fetchTeachers, fetchRooms, createClass, updateClass, deleteClass } from "../../api/classes";
 
 const { Option } = Select;
 
@@ -21,82 +20,60 @@ const ClassTracking = () => {
     const [searchText, setSearchText] = useState("");
     const [form] = Form.useForm();
     const [weeklySchedule, setWeeklySchedule] = useState([]);
-    const [classTimes, setClassTimes] = useState({}); // Track selected times for each weekday
-    const [rooms, setRooms] = useState([]); // Danh sách phòng học
-    const [roomSelection, setRoomSelection] = useState({}); // Track selected rooms for each weekday
+    const [classTimes, setClassTimes] = useState({});
+    const [rooms, setRooms] = useState([]);
+    const [roomSelection, setRoomSelection] = useState({});
 
     const navigate = useNavigate();
 
-    // Lấy token từ localStorage để gửi trong request
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login");
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
-    // Fetch danh sách lớp học từ API
     useEffect(() => {
-        fetchClasses();
-        fetchTeachers();
-        fetchRooms(); 
+        fetchClassesData();
+        fetchTeachersData();
+        fetchRoomsData();
     }, []);
 
-    const fetchRooms = async () => {
+    const fetchRoomsData = async () => {
         try {
-          const response = await axios.get(`${API_BASE_URL}/rooms?status=active`, {
-            headers: getAuthHeaders(),
-          });
-          setRooms(response.data);
+            const data = await fetchRooms();
+            setRooms(data);
         } catch (error) {
-          handleRequestError(error, "Lỗi khi tải danh sách phòng học.");
+            handleRequestError(error, "Lỗi khi tải danh sách phòng học.");
         }
     };
-    
+
     const handleRoomChange = (day, roomId) => {
         setRoomSelection((prev) => ({
-          ...prev,
-          [day]: roomId, // Update room selection for the specific day
+            ...prev,
+            [day]: roomId,
         }));
-      };
-      
-      
+    };
 
-    const fetchClasses = async () => {
+    const fetchClassesData = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/classes`, {
-                headers: getAuthHeaders(),
-            });
-            setClasses(response.data);
-            setFilteredClasses(response.data);
+            const data = await fetchClasses();
+            setClasses(data);
+            setFilteredClasses(data);
         } catch (error) {
             handleRequestError(error, "Lỗi khi tải danh sách lớp học.");
         }
         setLoading(false);
     };
 
-    // ✅ API lấy danh sách giáo viên
-    const fetchTeachers = async () => {
+    const fetchTeachersData = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/teachers`, {
-                headers: getAuthHeaders(),
-            });
-            setTeachers(response.data);
+            const data = await fetchTeachers();
+            setTeachers(data);
         } catch (error) {
             handleRequestError(error, "Lỗi khi tải danh sách giáo viên.");
         }
     };
 
     const handleRequestError = (error, defaultMessage) => {
-        if (error.response?.status === 401) {
+        if (error.message === "Unauthorized") {
             message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
             localStorage.removeItem("token");
             navigate("/login");
-        } else if (error.response?.status === 403) {
-            message.error("Bạn không có quyền thực hiện thao tác này!");
         } else {
             message.error(defaultMessage);
         }
@@ -150,8 +127,7 @@ const ClassTracking = () => {
                 ...classData,
                 start_date: classData.start_date ? moment(classData.start_date) : null,
                 end_date: classData.end_date ? moment(classData.end_date) : null,
-                // Giới thiệu logic phòng học cho từng ngày
-                roomSelection: classData.room_selection || {},  // Gán room_selection vào form
+                roomSelection: classData.room_selection || {},
               }
             : { class_code: "", name: "", teacher_id: "", start_date: null, end_date: null, total_sessions: "", subject: "", status: "" }
         );
@@ -187,16 +163,15 @@ const ClassTracking = () => {
         try {
             const values = await form.validateFields();
             
-            // Tạo mảng start_time, end_time và room_ids từ classTimes
             const start_time = [];
             const end_time = [];
-            const room_ids = []; // Mảng lưu room_ids cho mỗi ngày trong lịch
+            const room_ids = [];
     
             weeklySchedule.forEach(day => {
                 if (classTimes[day]) {
                     start_time.push(classTimes[day].start_time);
                     end_time.push(classTimes[day].end_time);
-                    room_ids.push(values[`room_id_${day}`]);  // Lưu room_id cho mỗi ngày
+                    room_ids.push(values[`room_id_${day}`]);
                 }
             });
     
@@ -205,39 +180,27 @@ const ClassTracking = () => {
                 start_date: values.start_date ? values.start_date.format("YYYY-MM-DD") : null,
                 total_sessions: Number(values.total_sessions),
                 teacher_id: values.teacher_id,
-                weekly_schedule: weeklySchedule.map(Number), // Dữ liệu lịch học
-                start_time: start_time,  // Gửi mảng start_time
-                end_time: end_time,      // Gửi mảng end_time
-                room_ids: room_ids      // Gửi mảng room_ids cho từng buổi học
+                weekly_schedule: weeklySchedule.map(Number),
+                start_time: start_time,
+                end_time: end_time,
+                room_ids: room_ids
             };
     
-            console.log("Sending payload:", payload); // Kiểm tra dữ liệu trước khi gửi
-    
             if (editingClass) {
-                await axios.put(`${API_BASE_URL}/classes/${editingClass.id}`, payload, {
-                    headers: getAuthHeaders(),
-                });
+                await updateClass(editingClass.id, payload);
                 message.success("Cập nhật lớp học thành công!");
             } else {
-                await axios.post(`${API_BASE_URL}/classes`, payload, {
-                    headers: getAuthHeaders(),
-                });
+                await createClass(payload);
                 message.success("Thêm lớp học thành công!");
             }
     
-            fetchClasses();
+            fetchClassesData();
             setIsModalOpen(false);
             form.resetFields();
         } catch (error) {
-            console.error("Error response:", error.response?.data); // Kiểm tra lỗi
             handleRequestError(error, "Lỗi khi lưu lớp học.");
         }
     };
-    
-    
-    
-    
-    
 
     const handleDelete = async (id) => {
         Modal.confirm({
@@ -245,11 +208,9 @@ const ClassTracking = () => {
             content: "Bạn có chắc chắn muốn xoá lớp học này không?",
             onOk: async () => {
                 try {
-                    await axios.delete(`${API_BASE_URL}/classes/${id}`, {
-                        headers: getAuthHeaders(),
-                    });
+                    await deleteClass(id);
                     message.success("Xóa lớp học thành công!");
-                    fetchClasses();
+                    fetchClassesData();
                 } catch (error) {
                     handleRequestError(error, "Lỗi khi xóa lớp học.");
                 }

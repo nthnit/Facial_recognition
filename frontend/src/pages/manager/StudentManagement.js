@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker , Upload} from "antd";
+import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker, Upload } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
 import moment from "moment";
 import * as XLSX from "xlsx"; 
 import { useNavigate, Link } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
+import { fetchStudents, createStudent, updateStudent, deleteStudent, uploadStudentImage } from "../../api/students";
 
 const { Title } = Typography;
 const StudentManagement = () => {
@@ -21,50 +20,32 @@ const StudentManagement = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate();
 
-    // Lấy token từ localStorage để gửi trong request
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login");
-            return {};
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
     useEffect(() => {
-        fetchStudents();
+        fetchStudentsData();
     }, []);
 
-    // 🔹 API lấy danh sách học sinh
-    const fetchStudents = async () => {
+    const fetchStudentsData = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/students`, {
-                headers: getAuthHeaders(),
-            });
-            setStudents(response.data);
-            setFilteredStudents(response.data);
+            const data = await fetchStudents();
+            setStudents(data);
+            setFilteredStudents(data);
         } catch (error) {
             handleRequestError(error, "Lỗi khi tải danh sách học sinh.");
         }
         setLoading(false);
     };
 
-    // 🔹 Xử lý lỗi API
     const handleRequestError = (error, defaultMessage) => {
-        if (error.response?.status === 401) {
+        if (error.message === "Unauthorized") {
             message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
             localStorage.removeItem("token");
             navigate("/login");
-        } else if (error.response?.status === 403) {
-            message.error("Bạn không có quyền thực hiện thao tác này!");
         } else {
             message.error(defaultMessage);
         }
     };
 
-    // 🔹 Chức năng tìm kiếm học sinh
     const handleSearch = (e) => {
         const value = e.target.value.toLowerCase();
         setSearchText(value);
@@ -80,7 +61,6 @@ const StudentManagement = () => {
         setFilteredStudents(filtered);
     };
 
-    // 🔹 Hiển thị modal thêm/sửa học sinh
     const showModal = (student = null) => {
         setEditingStudent(student);
         setIsModalOpen(true);
@@ -94,84 +74,46 @@ const StudentManagement = () => {
         );
     };
 
-    // 🔹 Xử lý thêm hoặc cập nhật học sinh
-    // 🔹 Xử lý thêm hoặc cập nhật học sinh
-const handleOk = async () => {
-    try {
-        const values = await form.validateFields();
+    const handleOk = async () => {
+        try {
+            const values = await form.validateFields();
+            const payload = {
+                ...values,
+                date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : null,
+                admission_year: values.admission_year || new Date().getFullYear(),
+                status: values.status || "active",
+                address: values.address || "Chưa cập nhật",
+                image_url: values.image_url || null
+            };
+            
+            if (editingStudent) {
+                await updateStudent(editingStudent.id, payload);
+                message.success("Cập nhật học sinh thành công!");
+            } else {
+                await createStudent(payload);
+                message.success("Thêm học sinh thành công!");
+            }
 
-        // ✅ Xây dựng payload gửi lên API
-        const payload = {
-            ...values,
-            date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : null,
-            admission_year: values.admission_year || new Date().getFullYear(),
-            status: values.status || "active",
-            address: values.address || "Chưa cập nhật",
-            image_url: values.image_url || null // Thêm phần image_url vào payload
-        };
-        console.log("thong tin hoc sinh duoc gui:",payload);
-        
-        // ✅ Kiểm tra nếu đang chỉnh sửa học sinh (editingStudent)
-        if (editingStudent) {
-            // Cập nhật học sinh
-            await axios.put(`${API_BASE_URL}/students/${editingStudent.id}`, payload, {
-                headers: getAuthHeaders(),
-            });
-            message.success("Cập nhật học sinh thành công!");
-        } else {
-            // Thêm mới học sinh
-            await axios.post(`${API_BASE_URL}/students`, payload, {
-                headers: getAuthHeaders(),
-            });
-            message.success("Thêm học sinh thành công!");
-        }
-
-        // ✅ Tải lại danh sách học sinh sau khi thêm hoặc sửa thành công
-        fetchStudents();
-
-        // ✅ Đóng modal và reset form
-        setIsModalOpen(false);
-        form.resetFields();
-    } catch (error) {
-        if (error.response) {
-            if (error.response.status === 400 && error.response.data.detail === "Email đã tồn tại") {
+            fetchStudentsData();
+            setIsModalOpen(false);
+            form.resetFields();
+        } catch (error) {
+            if (error.response?.status === 400 && error.response.data.detail === "Email đã tồn tại") {
                 message.error("Email đã tồn tại. Vui lòng nhập email khác!");
             } else {
                 message.error("Lỗi khi lưu học sinh. Vui lòng thử lại.");
             }
-        } else {
-            message.error("Lỗi kết nối đến server.");
         }
-    }
-};
+    };
 
-    
-    // Xử lý upload ảnh lên Cloudinary
     const handleUpload = async ({ file }) => {
         setUploading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-        
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                message.error("Bạn chưa đăng nhập!");
-                navigate("/login");
-                return;
-            }
-        
-            const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`, // Gửi token khi upload ảnh
-                },
-            });
-        
-            // Lấy URL từ Cloudinary và set vào form
-            form.setFieldsValue({ image_url: response.data.image_url });
+            const response = await uploadStudentImage(file);
+            form.setFieldsValue({ image_url: response.image_url });
             message.success("Ảnh đã tải lên Cloudinary!");
         } catch (error) {
-            if (error.response?.status === 403) {
+            if (error.message === "Unauthorized") {
                 message.error("Bạn không có quyền upload ảnh.");
             } else {
                 message.error("Lỗi khi tải ảnh lên Cloudinary.");
@@ -180,14 +122,11 @@ const handleOk = async () => {
         setUploading(false);
     };
 
-    // 🔹 Xử lý xoá học sinh
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`${API_BASE_URL}/students/${id}`, {
-                headers: getAuthHeaders(),
-            });
+            await deleteStudent(id);
             message.success("Xóa học sinh thành công!");
-            fetchStudents();
+            fetchStudentsData();
         } catch (error) {
             handleRequestError(error, "Lỗi khi xóa học sinh.");
         }

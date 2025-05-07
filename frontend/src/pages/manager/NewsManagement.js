@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload, Card, Typography } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
-import { useNavigate,Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
+import { fetchAllNews, createNews, updateNews, deleteNews, uploadNewsImage } from "../../api/news";
 
 const { Title, Text } = Typography;
-
 
 const NewsManagement = () => {
     usePageTitle("News Management");
@@ -23,29 +21,17 @@ const NewsManagement = () => {
     const [pageSize, setPageSize] = useState(5);
     const [uploading, setUploading] = useState(false);
 
-    // Lấy token từ localStorage để gửi trong request
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login");
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
     useEffect(() => {
-        fetchNews();
+        fetchAllNewsData();
     }, []);
 
-    const fetchNews = async () => {
+    const fetchAllNewsData = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/news`, {
-                headers: getAuthHeaders(),
-            });
-            setNewsList(response.data);
+            const data = await fetchAllNews();
+            setNewsList(data);
         } catch (error) {
-            message.error("Lỗi khi tải danh sách tin tức.");
+            handleRequestError(error, "Lỗi khi tải danh sách tin tức.");
         }
         setLoading(false);
     };
@@ -57,21 +43,17 @@ const NewsManagement = () => {
             const requestData = {
                 title: values.title,
                 content: values.content,
-                image_url: values.image_url || null, // ✅ Đảm bảo giá trị null nếu không có ảnh
-                status: "active", // ✅ Cần đảm bảo gửi đúng kiểu enum
+                image_url: values.image_url || null,
+                status: "active",
             };
     
-            await axios.post(`${API_BASE_URL}/news`, requestData, {
-                headers: getAuthHeaders(),
-            });
-    
+            await createNews(requestData);
             message.success("Đăng tin thành công!");
             setIsModalOpen(false);
-            fetchNews();
+            fetchAllNewsData();
             form.resetFields();
         } catch (error) {
-            console.error(error);
-            message.error("Lỗi khi đăng tin.");
+            handleRequestError(error, "Lỗi khi đăng tin.");
         }
     };
 
@@ -82,21 +64,17 @@ const NewsManagement = () => {
             const requestData = {
                 title: values.title,
                 content: values.content,
-                image_url: values.image_url || null, // ✅ Đảm bảo giá trị null nếu không có ảnh
-                status: "active", // ✅ Kiểu enum
+                image_url: values.image_url || null,
+                status: "active",
             };
     
-            await axios.put(`${API_BASE_URL}/news/${id}`, requestData, {
-                headers: getAuthHeaders(),
-            });
-    
+            await updateNews(id, requestData);
             message.success("Cập nhật tin tức thành công!");
             setIsModalOpen(false);
-            fetchNews();
+            fetchAllNewsData();
             form.resetFields();
         } catch (error) {
-            console.error(error);
-            message.error("Lỗi khi cập nhật tin tức.");
+            handleRequestError(error, "Lỗi khi cập nhật tin tức.");
         }
     };
 
@@ -106,20 +84,40 @@ const NewsManagement = () => {
             content: "Bạn có chắc chắn muốn xoá tin tức này không?",
             onOk: async () => {
                 try {
-                    await axios.delete(`${API_BASE_URL}/news/${id}`, {
-                        headers: getAuthHeaders(),
-                    });
+                    await deleteNews(id);
                     message.success("Xóa tin tức thành công!");
-                    fetchNews();
+                    fetchAllNewsData();
                 } catch (error) {
-                    message.error("Lỗi khi xóa tin tức.");
+                    handleRequestError(error, "Lỗi khi xóa tin tức.");
                 }
             },
         });
     };
 
+    const handleRequestError = (error, defaultMessage) => {
+        if (error.message === "Unauthorized") {
+            message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+            localStorage.removeItem("token");
+            navigate("/login");
+        } else {
+            message.error(defaultMessage);
+        }
+    };
+
     const handleSearch = (e) => {
         setSearchText(e.target.value.toLowerCase());
+    };
+
+    const handleUpload = async ({ file }) => {
+        setUploading(true);
+        try {
+            const response = await uploadNewsImage(file);
+            form.setFieldsValue({ image_url: response.image_url });
+            message.success("Ảnh đã tải lên Cloudinary!");
+        } catch (error) {
+            handleRequestError(error, "Lỗi khi tải ảnh lên Cloudinary.");
+        }
+        setUploading(false);
     };
 
     const filteredNews = newsList.filter(
@@ -135,40 +133,6 @@ const NewsManagement = () => {
         setEditingNews(news);
         setIsModalOpen(true);
         form.setFieldsValue(news || { title: "", content: "", image_url: "" });
-    };
-
-    // Xử lý upload ảnh lên Cloudinary
-    const handleUpload = async ({ file }) => {
-        setUploading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-    
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                message.error("Bạn chưa đăng nhập!");
-                navigate("/login");
-                return;
-            }
-    
-            const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`, 
-                },
-            });
-    
-            // Lấy URL từ Cloudinary và set vào form
-            form.setFieldsValue({ image_url: response.data.image_url });
-            message.success("Ảnh đã tải lên Cloudinary!");
-        } catch (error) {
-            if (error.response?.status === 403) {
-                message.error("Bạn không có quyền upload ảnh.");
-            } else {
-                message.error("Lỗi khi tải ảnh lên Cloudinary.");
-            }
-        }
-        setUploading(false);
     };
 
     return (

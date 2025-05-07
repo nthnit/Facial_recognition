@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
 from database import get_db
@@ -6,6 +6,8 @@ from models.user import User
 from schemas.user_schema import UserCreateRequest, UserResponse, ChangePasswordRequest
 from utils.security import hash_password, decode_access_token, verify_password
 from typing import List
+import pandas as pd
+from io import BytesIO
 
 router = APIRouter()
 
@@ -174,3 +176,109 @@ def reset_password(user_id: int, db: Session = Depends(get_db), current_user: Us
     db.refresh(user)
 
     return {"detail": "Mật khẩu đã được reset thành công"}
+
+# 🔹 API POST: Tạo nhiều người dùng từ file Excel (Yêu cầu xác thực)
+@router.post("/bulk-create")
+async def create_users_from_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Kiểm tra quyền admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Bạn không có quyền thực hiện thao tác này")
+
+    # Kiểm tra định dạng file
+    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
+        raise HTTPException(status_code=400, detail="File không đúng định dạng. Chỉ chấp nhận file Excel (.xlsx, .xls) hoặc CSV")
+
+    try:
+        # Đọc file Excel/CSV
+        contents = await file.read()
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(BytesIO(contents), encoding='utf-8')
+        else:
+            df = pd.read_excel(BytesIO(contents))
+
+        # Chuyển đổi tên cột thành chữ thường
+        df.columns = df.columns.str.lower()
+
+        # Kiểm tra các cột bắt buộc
+        required_columns = ['full_name', 'email', 'phone_number', 'role', 'date_of_birth']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Thiếu các cột bắt buộc: {', '.join(missing_columns)}"
+            )
+
+        # Mật khẩu mặc định
+        default_password = "Active123!"
+        hashed_password = hash_password(default_password)
+
+        success_count = 0
+        error_count = 0
+        errors = []
+
+        # Xử lý từng dòng trong file
+        for index, row in df.iterrows():
+            try:
+                # Kiểm tra dữ liệu trống
+                if pd.isna(row['email']) or pd.isna(row['full_name']) or pd.isna(row['phone_number']) or pd.isna(row['role']) or pd.isna(row['date_of_birth']):
+                    error_count += 1
+                    errors.append(f"Dòng {index + 2}: Thiếu thông tin bắt buộc")
+                    continue
+
+                # Chuyển đổi ngày sinh thành định dạng chuẩn
+                try:
+                    if isinstance(row['date_of_birth'], str):
+                        date_of_birth = pd.to_datetime(row['date_of_birth']).date()
+                    else:
+                        date_of_birth = row['date_of_birth'].date()
+                except:
+                    error_count += 1
+                    errors.append(f"Dòng {index + 2}: Định dạng ngày sinh không hợp lệ")
+                    continue
+
+                # Kiểm tra email trùng lặp
+                existing_user = db.query(User).filter(User.email == row['email']).first()
+                if existing_user:
+                    error_count += 1
+                    errors.append(f"Dòng {index + 2}: Email {row['email']} đã tồn tại")
+                    continue
+
+                # Kiểm tra vai trò hợp lệ
+                valid_roles = ['teacher', 'manager', 'admin']
+                if row['role'] not in valid_roles:
+                    error_count += 1
+                    errors.append(f"Dòng {index + 2}: Vai trò không hợp lệ. Chỉ chấp nhận: {', '.join(valid_roles)}")
+                    continue
+
+                # Tạo user mới
+                new_user = User(
+                    email=row['email'].strip(),
+                    password=hashed_password,
+                    role=row['role'].strip(),
+                    full_name=row['full_name'].strip(),
+                    date_of_birth=date_of_birth,
+                    phone_number=str(row['phone_number']).strip()
+                )
+
+                db.add(new_user)
+                success_count += 1
+
+            except Exception as e:
+                error_count += 1
+                errors.append(f"Dòng {index + 2}: {str(e)}")
+
+        # Commit tất cả các thay đổi
+        db.commit()
+
+        return {
+            "success_count": success_count,
+            "error_count": error_count,
+            "errors": errors
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Lỗi khi xử lý file: {str(e)}")

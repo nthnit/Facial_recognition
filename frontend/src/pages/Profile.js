@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Card, Avatar, Button, Form, Input, Divider, message, DatePicker, Upload, Row, Col } from "antd";
 import { UserOutlined, EditOutlined, SaveOutlined, LockOutlined, UploadOutlined, CloseOutlined } from "@ant-design/icons";
-import axios from "axios";
-import API_BASE_URL from "../api/config";
 import moment from "moment";
 import usePageTitle from "./common/usePageTitle";
-
+import { fetchUserInfo, updateUserInfo, uploadUserAvatar, changeUserPassword } from "../api/profile";
 
 const Profile = () => {
     usePageTitle("Profile");
@@ -17,24 +15,16 @@ const Profile = () => {
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
-        fetchUserInfo();
+        loadUserInfo();
     }, []);
 
-    const fetchUserInfo = async () => {
+    const loadUserInfo = async () => {
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                message.error("Bạn chưa đăng nhập!");
-                return;
-            }
-            const response = await axios.get(`${API_BASE_URL}/users/user/info`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setUser(response.data);
+            const userData = await fetchUserInfo();
+            setUser(userData);
             form.setFieldsValue({
-                ...response.data,
-                date_of_birth: response.data.date_of_birth ? moment(response.data.date_of_birth) : null,
+                ...userData,
+                date_of_birth: userData.date_of_birth ? moment(userData.date_of_birth) : null,
             });
         } catch (error) {
             message.error("Lỗi khi lấy thông tin người dùng.");
@@ -56,19 +46,13 @@ const Profile = () => {
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
-            const token = localStorage.getItem("token");
-
-            // Chuyển ngày sinh từ moment thành định dạng 'YYYY-MM-DD'
             values.date_of_birth = values.date_of_birth.format("YYYY-MM-DD");
 
-            await axios.put(`${API_BASE_URL}/users/${user.id}`, values, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
+            await updateUserInfo(user.id, values);
             setUser(values);
             setIsEditing(false);
             message.success("Thông tin đã được cập nhật!");
-            fetchUserInfo();
+            loadUserInfo();
         } catch (error) {
             message.error("Lỗi khi cập nhật thông tin.");
         }
@@ -76,20 +60,9 @@ const Profile = () => {
 
     const handleUpload = async ({ file }) => {
         setUploading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-
         try {
-            const token = localStorage.getItem("token");
-            const response = await axios.post(`${API_BASE_URL}/uploads/upload-image/`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            // Cập nhật đường dẫn ảnh vào form
-            form.setFieldsValue({ avatar_url: response.data.image_url });
+            const response = await uploadUserAvatar(file);
+            form.setFieldsValue({ avatar_url: response.image_url });
             message.success("Ảnh đã tải lên thành công!");
         } catch (error) {
             message.error("Lỗi khi tải ảnh lên.");
@@ -105,15 +78,10 @@ const Profile = () => {
                 return;
             }
 
-            const token = localStorage.getItem("token");
-            await axios.put(
-                `${API_BASE_URL}/users/${user.id}/change-password`,
-                {
-                    old_password: values.oldPassword,
-                    new_password: values.newPassword
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await changeUserPassword(user.id, {
+                old_password: values.oldPassword,
+                new_password: values.newPassword
+            });
 
             message.success("Mật khẩu đã được thay đổi!");
             setIsChangingPassword(false);

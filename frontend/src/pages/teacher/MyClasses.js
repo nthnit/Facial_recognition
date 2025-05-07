@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Card, Typography, Row, Col, Spin, message } from "antd";
 import { Link } from "react-router-dom";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
 import usePageTitle from "../common/usePageTitle";
+import { fetchUserInfo } from "../../api/userInfo";
+import { fetchTeacherClasses } from "../../api/teacherClasses";
 
 const { Title, Text } = Typography;
 
@@ -13,24 +13,12 @@ const MyClasses = () => {
     const [loading, setLoading] = useState(true);
     const [teacherId, setTeacherId] = useState(null);
 
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            return {};
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
     useEffect(() => {
-        // 🔹 Lấy thông tin người dùng để lấy teacher_id
-        const fetchUserInfo = async () => {
+        const getUserInfo = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/users/user/info`, {
-                    headers: getAuthHeaders(),
-                });
-                if (response.data.role === "teacher") {
-                    setTeacherId(response.data.id);
+                const userData = await fetchUserInfo();
+                if (userData.role === "teacher") {
+                    setTeacherId(userData.id);
                 } else {
                     message.error("Bạn không có quyền truy cập!");
                 }
@@ -39,25 +27,22 @@ const MyClasses = () => {
             }
         };
 
-        fetchUserInfo();
+        getUserInfo();
     }, []);
 
     useEffect(() => {
-        // 🔹 Khi có teacher_id, gọi API lấy danh sách lớp học
         if (teacherId) {
-            const fetchClasses = async () => {
+            const getClasses = async () => {
                 try {
-                    const response = await axios.get(`${API_BASE_URL}/teachers/${teacherId}/classes`, {
-                        headers: getAuthHeaders(),
-                    });
-                    setClasses(response.data);
+                    const data = await fetchTeacherClasses(teacherId);
+                    setClasses(data);
                 } catch (error) {
                     message.error("Lỗi khi tải danh sách lớp học.");
                 }
                 setLoading(false);
             };
 
-            fetchClasses();
+            getClasses();
         }
     }, [teacherId]);
 

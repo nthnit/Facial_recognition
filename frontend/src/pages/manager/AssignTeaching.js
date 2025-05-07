@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Table, Select, Button, Space, message, Input } from "antd";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
-import API_BASE_URL from "../../api/config"
-const { Option } = Select;
+import { fetchClasses, fetchTeachers, assignTeacherToClass } from "../../api/classes";
 
+const { Option } = Select;
 
 const AssignTeaching = () => {
     usePageTitle("Assign");
@@ -16,46 +15,39 @@ const AssignTeaching = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchClasses();
-        fetchTeachers();
+        fetchClassesData();
+        fetchTeachersData();
     }, []);
 
-    // Lấy token từ localStorage
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login");
-            return null;
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
     // 🟢 Lấy danh sách lớp học
-    const fetchClasses = async () => {
+    const fetchClassesData = async () => {
         setLoading(true);
         try {
-            const headers = getAuthHeaders();
-            if (!headers) return;
-
-            const response = await axios.get(`${API_BASE_URL}/classes`, { headers });
-            setClasses(response.data);
+            const data = await fetchClasses();
+            setClasses(data);
         } catch (error) {
-            message.error("Lỗi khi tải danh sách lớp học.");
+            if (error.message === "Unauthorized") {
+                message.error("Bạn chưa đăng nhập!");
+                navigate("/login");
+            } else {
+                message.error("Lỗi khi tải danh sách lớp học.");
+            }
         }
         setLoading(false);
     };
 
     // 🟢 Lấy danh sách giảng viên
-    const fetchTeachers = async () => {
+    const fetchTeachersData = async () => {
         try {
-            const headers = getAuthHeaders();
-            if (!headers) return;
-
-            const response = await axios.get(`${API_BASE_URL}/teachers`, { headers });
-            setTeachers(response.data);
+            const data = await fetchTeachers();
+            setTeachers(data);
         } catch (error) {
-            message.error("Lỗi khi tải danh sách giảng viên.");
+            if (error.message === "Unauthorized") {
+                message.error("Bạn chưa đăng nhập!");
+                navigate("/login");
+            } else {
+                message.error("Lỗi khi tải danh sách giảng viên.");
+            }
         }
     };
 
@@ -77,18 +69,16 @@ const AssignTeaching = () => {
     // 🟢 Gửi API để cập nhật giảng viên cho lớp
     const handleAssign = async (classId, teacherId) => {
         try {
-            const headers = getAuthHeaders();
-            if (!headers) return;
-
-            await axios.put(
-                `${API_BASE_URL}/classes/${classId}/assign`,
-                { teacher_id: teacherId },
-                { headers }
-            );
+            await assignTeacherToClass(classId, teacherId);
             message.success("Phân công giảng viên thành công!");
-            fetchClasses(); // ✅ Cập nhật lại danh sách sau khi lưu
+            fetchClassesData(); // ✅ Cập nhật lại danh sách sau khi lưu
         } catch (error) {
-            message.error("Lỗi khi phân công giảng viên.");
+            if (error.message === "Unauthorized") {
+                message.error("Bạn chưa đăng nhập!");
+                navigate("/login");
+            } else {
+                message.error("Lỗi khi phân công giảng viên.");
+            }
         }
     };
 

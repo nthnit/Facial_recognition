@@ -10,13 +10,23 @@ const getAuthHeaders = () => {
     return { Authorization: `Bearer ${token}` };
 };
 
-// Fetch manager dashboard statistics
-export const fetchManagerStats = async () => {
+// Fetch user information
+export const fetchUserInfo = async () => {
     const headers = getAuthHeaders();
     if (!headers) {
         throw new Error("Unauthorized");
     }
-    const response = await axios.get(`${API_BASE_URL}/manager/stats`, { headers });
+    const response = await axios.get(`${API_BASE_URL}/users/user/info`, { headers });
+    return response.data;
+};
+
+// Fetch news
+export const fetchNews = async () => {
+    const headers = getAuthHeaders();
+    if (!headers) {
+        throw new Error("Unauthorized");
+    }
+    const response = await axios.get(`${API_BASE_URL}/news/`, { headers });
     return response.data;
 };
 
@@ -28,4 +38,4 @@ export const fetchActiveBanners = async () => {
     }
     const response = await axios.get(`${API_BASE_URL}/banners?status=active`, { headers });
     return response.data;
-};
+}; 

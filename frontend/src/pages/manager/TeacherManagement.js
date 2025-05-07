@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker, Select } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, FileExcelOutlined } from "@ant-design/icons";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
 import { useNavigate, Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
+import { fetchTeachers, createTeacher, updateTeacher, deleteTeacher } from "../../api/teachers";
 
 const { Title } = Typography;
 
@@ -21,29 +20,16 @@ const TeacherManagement = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate();
 
-    // Lấy token từ localStorage để gửi trong request
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login");
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
-    // Fetch danh sách giáo viên từ API
     useEffect(() => {
-        fetchTeachers();
+        fetchTeachersData();
     }, []);
 
-    const fetchTeachers = async () => {
+    const fetchTeachersData = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE_URL}/teachers`, {
-                headers: getAuthHeaders(),
-            });
-            setTeachers(response.data);
-            setFilteredTeachers(response.data); // Cập nhật danh sách đã lọc
+            const data = await fetchTeachers();
+            setTeachers(data);
+            setFilteredTeachers(data);
         } catch (error) {
             handleRequestError(error, "Lỗi khi tải danh sách giáo viên");
         }
@@ -51,12 +37,10 @@ const TeacherManagement = () => {
     };
 
     const handleRequestError = (error, defaultMessage) => {
-        if (error.response?.status === 401) {
+        if (error.message === "Unauthorized") {
             message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
             localStorage.removeItem("token");
             navigate("/login");
-        } else if (error.response?.status === 403) {
-            message.error("Bạn không có quyền thực hiện thao tác này!");
         } else {
             message.error(defaultMessage);
         }
@@ -112,23 +96,17 @@ const TeacherManagement = () => {
             const values = await form.validateFields();
             const payload = {
                 ...values,
-                date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : "2000-01-01", // ✅ Đảm bảo ngày sinh hợp lệ
+                date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : "2000-01-01",
             };
 
             if (editingTeacher) {
-                // Cập nhật giáo viên
-                await axios.put(`${API_BASE_URL}/teachers/${editingTeacher.id}`, payload, {
-                    headers: getAuthHeaders(),
-                });
+                await updateTeacher(editingTeacher.id, payload);
                 message.success("Cập nhật thông tin giáo viên thành công!");
             } else {
-                // Thêm giáo viên mới
-                await axios.post(`${API_BASE_URL}/teachers/create`, payload, {
-                    headers: getAuthHeaders(),
-                });
+                await createTeacher(payload);
                 message.success("Thêm giáo viên mới thành công!");
             }
-            fetchTeachers();
+            fetchTeachersData();
             setIsModalOpen(false);
             form.resetFields();
         } catch (error) {
@@ -138,11 +116,9 @@ const TeacherManagement = () => {
 
     const handleDelete = async (id) => {
         try {
-            await axios.delete(`${API_BASE_URL}/teachers/${id}`, {
-                headers: getAuthHeaders(),
-            });
+            await deleteTeacher(id);
             message.success("Xóa giáo viên thành công!");
-            fetchTeachers();
+            fetchTeachersData();
         } catch (error) {
             handleRequestError(error, "Lỗi khi xóa giáo viên");
         }

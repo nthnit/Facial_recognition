@@ -10,22 +10,22 @@ const getAuthHeaders = () => {
     return { Authorization: `Bearer ${token}` };
 };
 
-// Fetch manager dashboard statistics
-export const fetchManagerStats = async () => {
+// Fetch teacher's classes
+export const fetchTeacherClasses = async (teacherId) => {
     const headers = getAuthHeaders();
     if (!headers) {
         throw new Error("Unauthorized");
     }
-    const response = await axios.get(`${API_BASE_URL}/manager/stats`, { headers });
+    const response = await axios.get(`${API_BASE_URL}/teachers/${teacherId}/classes`, { headers });
     return response.data;
 };
 
-// Fetch active banners
-export const fetchActiveBanners = async () => {
+// Fetch teacher's schedule
+export const fetchTeacherSchedule = async () => {
     const headers = getAuthHeaders();
     if (!headers) {
         throw new Error("Unauthorized");
     }
-    const response = await axios.get(`${API_BASE_URL}/banners?status=active`, { headers });
+    const response = await axios.get(`${API_BASE_URL}/classes/teacher/schedule`, { headers });
     return response.data;
-};
+}; 

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Card, Col, Row, Typography, message, Button, Carousel } from "antd";
 import { UserOutlined, BookOutlined, SolutionOutlined, ReadOutlined } from "@ant-design/icons";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
+import { fetchManagerStats, fetchActiveBanners } from "../../api/dashboard";
 
 const { Title } = Typography;
 
@@ -18,52 +17,36 @@ const ManagerDashboard = () => {
     const [banners, setBanners] = useState([]);
     const navigate = useNavigate(); 
 
-    usePageTitle("Manager Dashboard") // Update page title
+    usePageTitle("Manager Dashboard");
 
-    // Fetching statistics
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const response = await axios.get(`${API_BASE_URL}/manager/stats`, {
-                    headers: getAuthHeaders(),
-                });
-                setStats(response.data);
-            } catch (error) {
-                handleRequestError(error, "Failed to load statistics");
-            }
-        };
-        
-        fetchStats();
-        fetchActiveBanners(); // Fetch active banners when the dashboard loads
+        fetchStatsData();
+        fetchBannersData();
     }, []);
 
-    const fetchActiveBanners = async () => {
+    const fetchStatsData = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/banners?status=active`, {
-                headers: getAuthHeaders(),
-            });
-            setBanners(response.data);
+            const data = await fetchManagerStats();
+            setStats(data);
+        } catch (error) {
+            handleRequestError(error, "Failed to load statistics");
+        }
+    };
+
+    const fetchBannersData = async () => {
+        try {
+            const data = await fetchActiveBanners();
+            setBanners(data);
         } catch (error) {
             message.error("Error fetching banners");
         }
     };
 
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("You are not logged in!");
-            navigate("/login");
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
     const handleRequestError = (error, defaultMessage) => {
-        if (error.response?.status === 401) {
+        if (error.message === "Unauthorized") {
             message.error("Session expired. Please log in again!");
             localStorage.removeItem("token");
             navigate("/login");
-        } else if (error.response?.status === 403) {
-            message.error("You do not have permission to view the statistics!");
         } else {
             message.error(defaultMessage);
         }

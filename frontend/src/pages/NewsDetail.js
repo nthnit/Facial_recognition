@@ -2,65 +2,45 @@ import React, { useState, useEffect } from "react";
 import { Card, Typography, Spin, Divider, message, Button, Row, Col, List, Pagination } from "antd";
 import { ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import usePageTitle from "./common/usePageTitle";
-import API_BASE_URL from "../api/config";
+import { fetchNewsDetail, fetchAllNews } from "../api/news";
 
 const { Title, Text } = Typography;
 
 const NewsDetail = () => {
-    const { id } = useParams(); // Lấy id từ URL
+    const { id } = useParams();
     const [news, setNews] = useState(null);
     const [loading, setLoading] = useState(true);
     const [relatedNews, setRelatedNews] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 4; // Number of related news per page
+    const pageSize = 4;
     const userRole = localStorage.getItem("role");
     const navigate = useNavigate();
     usePageTitle(news?.title || "Chi tiết tin tức");
 
-    // Lấy token từ localStorage
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            message.error("Bạn chưa đăng nhập!");
-            navigate("/login"); // Điều hướng về trang login nếu không có token
-        }
-        return { Authorization: `Bearer ${token}` };
-    };
-
-    // Fetch news detail from API
-    const fetchNewsDetail = async () => {
-        try {
-            const headers = getAuthHeaders();
-            if (!headers) return;
-            const response = await axios.get(`${API_BASE_URL}/news/${id}`, { headers });
-            setNews(response.data);
-            setLoading(false);
-        } catch (error) {
-            console.error("Lỗi khi tải tin tức chi tiết:", error);
-            message.error("Lỗi khi tải tin tức chi tiết.");
-        }
-    };
-
-    // Fetch related news for the sidebar
-    const fetchRelatedNews = async () => {
-        try {
-            const headers = getAuthHeaders();
-            if (!headers) return;
-            const response = await axios.get(`${API_BASE_URL}/news/`, { headers });
-            setRelatedNews(response.data); // Assuming you get related news from the same API
-        } catch (error) {
-            console.error("Lỗi khi tải tin tức liên quan:", error);
-        }
-    };
-
     useEffect(() => {
-        fetchNewsDetail();
-        fetchRelatedNews();
-    }, [id]);
+        const loadData = async () => {
+            try {
+                const [newsData, relatedNewsData] = await Promise.all([
+                    fetchNewsDetail(id),
+                    fetchAllNews()
+                ]);
+                setNews(newsData);
+                setRelatedNews(relatedNewsData);
+            } catch (error) {
+                if (error.message === "Unauthorized") {
+                    message.error("Bạn chưa đăng nhập!");
+                    navigate("/login");
+                } else {
+                    message.error("Lỗi khi tải tin tức chi tiết.");
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, [id, navigate]);
 
-    // Hiển thị loading khi dữ liệu chưa được tải xong
     if (loading) {
         return (
             <div style={{ display: "flex", justifyContent: "center", marginTop: "50px" }}>
@@ -69,17 +49,22 @@ const NewsDetail = () => {
         );
     }
 
-    // Handle pagination for related news
+    if (!news) {
+        return (
+            <div style={{ padding: "20px", textAlign: "center" }}>
+                <p>Không tìm thấy tin tức.</p>
+            </div>
+        );
+    }
+
     const onPageChange = (page) => {
         setCurrentPage(page);
     };
 
-    // Render related news
     const paginatedRelatedNews = relatedNews.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     return (
         <div style={{ padding: "20px", backgroundColor: "#f5f5f5" }}>
-            {/* Nút quay lại */}
             <Button 
                 onClick={() => navigate(userRole === "manager" ? "/manager/news" : "/teacher/dashboard")} 
                 icon={<ArrowLeftOutlined />}
@@ -93,7 +78,6 @@ const NewsDetail = () => {
                 {userRole === "manager" ? "Quay lại quản lý tin tức" : "Quay lại Dashboard"}
             </Button>
 
-            {/* Title, Date, and Author Block with background image */}
             <div 
                 style={{
                     backgroundImage: `url(${news?.image_url})`,
@@ -107,7 +91,6 @@ const NewsDetail = () => {
                     height: "20rem"
                 }}
             >
-                {/* Overlay */}
                 <div 
                     style={{
                         position: "absolute",
@@ -133,10 +116,8 @@ const NewsDetail = () => {
                 </div>
             </div>
 
-            {/* Main Content and Sidebar */}
             <Row gutter={16}>
                 <Col span={18}>
-                    {/* Content Block */}
                     <Card
                         style={{
                             borderRadius: "10px",
@@ -149,13 +130,13 @@ const NewsDetail = () => {
                             src={news?.image_url}
                             alt={news?.title}
                             style={{
-                                width: "50%",  // Adjust the width as needed
+                                width: "50%",
                                 height: "auto",
                                 borderRadius: "8px",
                                 marginBottom: "20px",
-                                display: "block",  // Ensures the image is treated as a block-level element
-                                marginLeft: "auto",  // Centers the image horizontally
-                                marginRight: "auto",  // Centers the image horizontally
+                                display: "block",
+                                marginLeft: "auto",
+                                marginRight: "auto",
                             }}
                         />
                         <Divider />
@@ -169,11 +150,9 @@ const NewsDetail = () => {
                             Tác giả: {news?.author_name} ({news?.author_email})
                         </Text>
                     </Card>
-
                 </Col>
 
                 <Col span={6}>
-                    {/* Related News Block */}
                     <Card title="Tin tức liên quan" style={{ marginBottom: 20 }}>
                         <List
                             dataSource={paginatedRelatedNews}
@@ -195,8 +174,8 @@ const NewsDetail = () => {
                                                     cursor: "pointer", 
                                                     textDecoration: "none" 
                                                 }} 
-                                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'} // Khi hover
-                                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'} // Khi không hover
+                                                onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                                                onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
                                             >
                                                 {item.title}
                                             </Text>
@@ -207,7 +186,6 @@ const NewsDetail = () => {
                                 </List.Item>
                             )}
                         />
-                        {/* Pagination */}
                         <Pagination
                             current={currentPage}
                             total={relatedNews.length}

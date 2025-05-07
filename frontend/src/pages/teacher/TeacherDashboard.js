@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Card, List, Typography, Row, Col, Tabs, Divider, Skeleton, Empty, Pagination, Button, Carousel, message } from "antd";
 import usePageTitle from "../common/usePageTitle";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import API_BASE_URL from "../../api/config"
+import { fetchUserInfo, fetchNews, fetchActiveBanners } from "../../api/userInfo";
+import { fetchTeacherSchedule } from "../../api/teacherClasses";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -17,27 +17,23 @@ const TeacherDashboard = () => {
     const [upcomingClasses, setUpcomingClasses] = useState([]);
     const [pastClasses, setPastClasses] = useState([]);
     const [news, setNews] = useState([]);
-    const [banners, setBanners] = useState([]);  // State for banners
+    const [banners, setBanners] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại cho phần tin tức
-    const [pageSize] = useState(4); // Số tin tức hiển thị mỗi trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(4);
     const navigate = useNavigate();
 
     // Fetch classes data
     const fetchClassesData = async () => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(`${API_BASE_URL}/classes/teacher/schedule`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
+            const data = await fetchTeacherSchedule();
             const today = [];
             const upcoming = [];
             const past = [];
 
-            const currentDate = new Date().toISOString().split("T")[0];  // YYYY-MM-DD format
+            const currentDate = new Date().toISOString().split("T")[0];
 
-            response.data.forEach(item => {
+            data.forEach(item => {
                 if (item.date === currentDate) {
                     today.push(item);
                 } else if (item.date > currentDate) {
@@ -57,37 +53,30 @@ const TeacherDashboard = () => {
         }
     };
 
-    // Fetch news from API
-    const fetchNews = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(`${API_BASE_URL}/news/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setNews(response.data);
-        } catch (error) {
-            console.error("Lỗi khi tải tin tức:", error);
-        }
-    };
-
-    // Fetch active banners
-    const fetchBanners = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(`${API_BASE_URL}/banners?status=active`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setBanners(response.data);
-        } catch (error) {
-            console.error("Lỗi khi tải banner:", error);
-        }
-    };
-
     useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [userData, newsData, bannersData] = await Promise.all([
+                    fetchUserInfo(),
+                    fetchNews(),
+                    fetchActiveBanners()
+                ]);
+                
+                setUser(userData);
+                setNews(newsData);
+                setBanners(bannersData);
+            } catch (error) {
+                if (error.message === "Unauthorized") {
+                    message.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+                    navigate("/login");
+                } else {
+                    message.error("Lỗi khi tải dữ liệu.");
+                }
+            }
+        };
+
+        loadData();
         fetchClassesData();
-        fetchNews();
-        fetchBanners();  // Fetch banners on dashboard load
-        fetchUserInfo();
     }, []);
 
     // Hàm nhóm các lớp theo ngày
@@ -155,25 +144,6 @@ const TeacherDashboard = () => {
     // Handle News click
     const handleNewsClick= (id) => {
         navigate(`/news/${id}`);
-    };
-
-    const fetchUserInfo = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                message.error("Bạn chưa đăng nhập!");
-                navigate("/login");
-                return;
-            }
-
-            const response = await axios.get("http://127.0.0.1:8000/users/user/info", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setUser(response.data);
-        } catch (error) {
-            message.error("Lỗi khi lấy thông tin người dùng.");
-        }
     };
 
     return (
