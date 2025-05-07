@@ -8,6 +8,9 @@ EXCLUDED_PATHS = ["/auth/login", "/register", "/docs", "/openapi.json"]
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
+        
+        if request.url.path.startswith("/attendance/face-attendance/public"):
+            return await call_next(request)
 
         # ✅ Nếu request là OPTIONS, bỏ qua AuthMiddleware
         if request.method == "OPTIONS":

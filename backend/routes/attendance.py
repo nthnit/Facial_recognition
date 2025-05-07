@@ -267,3 +267,72 @@ async def face_attendance(
         print(f"⚠️ Lỗi khi xử lý điểm danh: {e}")
         raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý điểm danh: {e}")
 
+
+@router.post("/face-attendance/public", response_model=FaceAttendanceResponse, responses={404: {"model": FaceAttendanceErrorResponse}, 422: {"model": FaceAttendanceErrorResponse}})
+async def face_attendance_public(
+    request: FaceAttendanceRequest,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Xử lý ảnh nhận từ base64
+        img = load_image_from_base64(request.image)
+        face_img = detect_and_crop_face(img)
+        new_embedding = extract_face_embedding(face_img)
+        print("[PUBLIC] Embedding của ảnh điểm danh:", new_embedding)
+
+        # Lấy tất cả embedding từ database
+        face_embeddings = db.query(FaceEmbedding).all()
+
+        matched_student = None
+        max_similarity = -1
+
+        for embedding in face_embeddings:
+            stored_embedding = np.array(json.loads(embedding.embedding))
+            similarity = cosine_similarity(np.array(new_embedding), stored_embedding)
+            print(f"[PUBLIC] Độ tương đồng với học sinh ID {embedding.student_id}: {similarity:.4f}")
+            if similarity > 0.8 and similarity > max_similarity:
+                max_similarity = similarity
+                matched_student = db.query(Student).filter(Student.id == embedding.student_id).first()
+
+        if matched_student:
+            class_obj = db.query(Class).filter(Class.id == request.class_id).first()
+            if not class_obj:
+                raise HTTPException(status_code=404, detail="Lớp học không tồn tại")
+
+            session = db.query(SessionModel).filter(
+                SessionModel.class_id == request.class_id,
+                SessionModel.date == request.session_date
+            ).first()
+            if not session:
+                raise HTTPException(status_code=404, detail="Buổi học không tồn tại")
+
+            existing_attendance = db.query(Attendance).filter(
+                Attendance.class_id == request.class_id,
+                Attendance.session_id == session.id,
+                Attendance.student_id == matched_student.id
+            ).first()
+
+            if existing_attendance:
+                existing_attendance.status = "Present"
+                existing_attendance.session_date = request.session_date
+                db.commit()
+                return FaceAttendanceResponse(student_id=matched_student.id, full_name=matched_student.full_name)
+
+            attendance = Attendance(
+                class_id=request.class_id,
+                session_id=session.id,
+                student_id=matched_student.id,
+                session_date=request.session_date,
+                status="Present"
+            )
+            db.add(attendance)
+            db.commit()
+
+            return FaceAttendanceResponse(student_id=matched_student.id, full_name=matched_student.full_name)
+        else:
+            raise HTTPException(status_code=404, detail="Không tìm thấy học sinh phù hợp")
+
+    except Exception as e:
+        print(f"⚠️ [PUBLIC] Lỗi khi xử lý điểm danh: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý điểm danh: {e}")
+

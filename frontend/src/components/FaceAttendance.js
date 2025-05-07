@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import axios from 'axios';
 import API_BASE_URL from "../api/config";
 import { useSearchParams, useNavigate } from 'react-router-dom';
-
+import { QRCodeCanvas } from 'qrcode.react';
 
 const FaceAttendance = () => {
   const webcamRef = useRef(null);
@@ -17,6 +17,7 @@ const FaceAttendance = () => {
   const [sessionStatus, setSessionStatus] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
 
   const classId = searchParams.get('classId');
   const sessionDate = searchParams.get('sessionDate');
@@ -164,6 +165,11 @@ const FaceAttendance = () => {
     });
   };
 
+  const generatePublicLink = () => {
+    // Đường dẫn public, có thể điều chỉnh lại domain nếu deploy
+    return `${window.location.origin}/face-attendance/public?classId=${classId}&sessionDate=${sessionDate}`;
+  };
+
   return (
     <div style={{ padding: 20 }}>
       {/* Nút quay lại lớp học */}
@@ -181,6 +187,26 @@ const FaceAttendance = () => {
       </Button>
 
       <h2>Điểm danh khuôn mặt tự động</h2>
+      <Button
+        type="dashed"
+        onClick={() => setIsQRModalOpen(true)}
+        style={{ marginBottom: 16 }}
+      >
+        Tạo mã QR cho buổi học này
+      </Button>
+      <Modal
+        title="Mã QR điểm danh khuôn mặt (không cần đăng nhập)"
+        open={isQRModalOpen}
+        onCancel={() => setIsQRModalOpen(false)}
+        footer={null}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <QRCodeCanvas value={generatePublicLink()} size={256} />
+          <div style={{ marginTop: 16, wordBreak: 'break-all' }}>
+            <a href={generatePublicLink()} target="_blank" rel="noopener noreferrer">{generatePublicLink()}</a>
+          </div>
+        </div>
+      </Modal>
       <Table
         columns={[
           { title: "Mã học sinh", dataIndex: "id", key: "id" },

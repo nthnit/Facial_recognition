@@ -32,12 +32,15 @@ import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeachingSchedule from "./pages/teacher/TeachingSchedule";
 import MyClasses from "./pages/teacher/MyClasses";
 
+import FaceAttendancePublic from "./components/FaceAttendancePublic";
+
 const AppRoutes = () => {
     return (
         <Router>
             <Routes>
                 {/* Trang login không dùng layout */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/face-attendance/public" element={<FaceAttendancePublic />} />
 
                 {/* MainLayout bao bọc tất cả route cần bảo vệ */}
                 <Route element={<ProtectedRoute allowedRoles={["admin", "manager", "teacher"]} />}>
@@ -80,6 +83,8 @@ const AppRoutes = () => {
                           path="/face-attendance" 
                           element={<ProtectedRoute allowedRoles={["teacher", "manager"]} component={FaceAttendance} />}
                         />
+
+                        
 
                     </Route>
                 </Route>
