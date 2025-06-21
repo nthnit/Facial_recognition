@@ -68,9 +68,10 @@ const StudentManagement = () => {
             student
                 ? { 
                     ...student, 
-                    date_of_birth: student.date_of_birth ? moment(student.date_of_birth) : null 
+                    date_of_birth: student.date_of_birth ? moment(student.date_of_birth) : null,
+                    image_url: student.image || student.image_url || ""
                   }
-                : { full_name: "", email: "", phone_number: "", address: "", date_of_birth: null }
+                : { full_name: "", email: "", phone_number: "", address: "", date_of_birth: null, image_url: "" }
         );
     };
 
@@ -111,7 +112,7 @@ const StudentManagement = () => {
         try {
             const response = await uploadStudentImage(file);
             form.setFieldsValue({ image_url: response.image_url });
-            message.success("Ảnh đã tải lên Cloudinary!");
+            message.success("Ảnh mới đã tải lên thành công! Ảnh cũ sẽ được xóa tự động.");
         } catch (error) {
             if (error.message === "Unauthorized") {
                 message.error("Bạn không có quyền upload ảnh.");
