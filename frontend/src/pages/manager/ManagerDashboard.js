@@ -4,6 +4,8 @@ import { UserOutlined, BookOutlined, SolutionOutlined, ReadOutlined } from "@ant
 import { useNavigate } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 import { fetchManagerStats, fetchActiveBanners } from "../../api/dashboard";
+import { fetchUserInfo } from "../../api/userInfo";
+import happyImg from "../../assets/images/happy.png"; // Ensure the path is correct
 
 const { Title } = Typography;
 
@@ -15,6 +17,7 @@ const ManagerDashboard = () => {
         news: 0,
     });
     const [banners, setBanners] = useState([]);
+    const [managerName, setManagerName] = useState("");
     const navigate = useNavigate(); 
 
     usePageTitle("Manager Dashboard");
@@ -22,6 +25,16 @@ const ManagerDashboard = () => {
     useEffect(() => {
         fetchStatsData();
         fetchBannersData();
+        // Lấy tên manager từ API (giống TeacherDashboard)
+        const getUser = async () => {
+            try {
+                const userData = await fetchUserInfo();
+                setManagerName(userData.full_name || "Quản trị viên");
+            } catch {
+                setManagerName("Quản trị viên");
+            }
+        };
+        getUser();
     }, []);
 
     const fetchStatsData = async () => {
@@ -54,7 +67,19 @@ const ManagerDashboard = () => {
 
     return (
         <div style={styles.container}>
-            <Title level={2} style={styles.title}>📊 Dashboard Management</Title>
+            {/* Personalized greeting */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
+                <img
+                    src={happyImg}
+                    alt="avatar"
+                    style={{ width: 56, height: 56, borderRadius: "50%",  objectFit: "contain" }}
+                />
+                <div>
+                    <div style={{ fontSize: 20, fontWeight: 600, color: "#1890ff" }}>Xin chào, {managerName} 👋</div>
+                    <div style={{ color: "#888", fontSize: 15 }}>Chúc bạn một ngày làm việc hiệu quả!</div>
+                </div>
+            </div>
+            <Title level={2} style={styles.title}>Dashboard Management</Title>
 
             {/* Carousel for active banners */}
             {banners.length > 0 && (

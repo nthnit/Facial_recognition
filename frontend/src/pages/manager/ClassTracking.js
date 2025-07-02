@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, Space, Modal, Form, message, DatePicker, Select, TimePicker } from "antd";
+import { Table, Button, Input, Space, Modal, Form, message} from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
 import { fetchClasses, fetchTeachers, fetchRooms, createClass, updateClass, deleteClass } from "../../api/classes";
+import ClassForm from "../../components/ClassForm";
 
-const { Option } = Select;
 
 const ClassTracking = () => {
     usePageTitle("Class Tracking");
@@ -231,7 +231,40 @@ const ClassTracking = () => {
         { title: "Ngày kết thúc", dataIndex: "end_date", key: "end_date", render: (date) => moment(date).format("DD-MM-YYYY") },
         { title: "Số buổi học", dataIndex: "total_sessions", key: "total_sessions" },
         { title: "Môn học", dataIndex: "subject", key: "subject" },
-        { title: "Trạng thái", dataIndex: "status", key: "status" },
+        {
+            title: "Trạng thái",
+            dataIndex: "status",
+            key: "status",
+            render: (status) => {
+                let color = "#1890ff";
+                let borderColor = "#1890ff";
+                if (status === "Active") {
+                    color = "#52c41a";
+                    borderColor = "#52c41a";
+                } else if (status === "Planning") {
+                    color = "#faad14";
+                    borderColor = "#faad14";
+                } else if (status === "Finish") {
+                    color = "#1890ff";
+                    borderColor = "#1890ff";
+                }
+                return (
+                    <span style={{
+                        color,
+                        border: `1.5px solid ${borderColor}`,
+                        borderRadius: 8,
+                        padding: "2px 12px",
+                        fontWeight: 600,
+                        background: "#fff",
+                        display: "inline-block",
+                        minWidth: 70,
+                        textAlign: "center"
+                    }}>
+                        {status}
+                    </span>
+                );
+            },
+        },
         {
             title: "Hành động",
             key: "actions",
@@ -259,93 +292,17 @@ const ClassTracking = () => {
             <Table columns={columns} dataSource={filteredClasses} loading={loading} rowKey="id" />
 
             <Modal title={editingClass ? "Chỉnh sửa lớp học" : "Thêm lớp học"} open={isModalOpen} onOk={handleOk} onCancel={() => setIsModalOpen(false)}>
-                <Form form={form} layout="vertical">
-                    <Form.Item label="Tên lớp" name="name" rules={[{ required: true, message: "Vui lòng nhập tên lớp!" }]}>
-                        <Input />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Giáo viên"
-                        name="teacher_id"
-                        rules={[{ required: true, message: "Vui lòng chọn giáo viên!" }]}
-                    >
-                        <Select placeholder="Chọn giáo viên">
-                            {teachers.map((teacher) => (
-                                <Select.Option key={teacher.id} value={teacher.id}>
-                                    {teacher.full_name}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-
-                    <Form.Item label="Môn học" name="subject" rules={[{ required: true, message: "Vui lòng nhập môn học!" }]}>
-                        <Input />
-                    </Form.Item>
-
-                    <Form.Item label="Ngày bắt đầu" name="start_date" rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu!" }]}>
-                        <DatePicker format="YYYY-MM-DD" />
-                    </Form.Item>
-
-                    <Form.Item label="Số buổi học" name="total_sessions" rules={[{ required: true, message: "Vui lòng nhập tổng số buổi học!" }]}>
-                        <Input type="number" min={1} />
-                    </Form.Item>
-
-                    <Form.Item label="Lịch học hàng tuần">
-                        <Select
-                            mode="multiple"
-                            placeholder="Chọn ngày học trong tuần"
-                            value={weeklySchedule}
-                            onChange={(value) => setWeeklySchedule(value)}
-                            style={{ width: "100%" }}
-                        >
-                            <Option value={0}>Thứ Hai</Option>
-                            <Option value={1}>Thứ Ba</Option>
-                            <Option value={2}>Thứ Tư</Option>
-                            <Option value={3}>Thứ Năm</Option>
-                            <Option value={4}>Thứ Sáu</Option>
-                            <Option value={5}>Thứ Bảy</Option>
-                            <Option value={6}>Chủ Nhật</Option>
-                        </Select>
-                    </Form.Item>
-
-                    {/* Time picker cho mỗi ngày học */}
-                    {weeklySchedule.map((day) => (
-                        <div key={day}>
-                            <h4>{`Thứ ${day + 2}`}</h4>
-                            <Form.Item label="Giờ bắt đầu" name={`start_time_${day}`}>
-                                <TimePicker
-                                    format="HH:mm"
-                                    value={classTimes[day]?.start_time ? moment(classTimes[day]?.start_time, "HH:mm") : null}
-                                    onChange={(time) => handleClassTimeChange(day, "start_time", time)}
-                                />
-                            </Form.Item>
-
-                            <Form.Item label="Giờ kết thúc" name={`end_time_${day}`}>
-                                <TimePicker
-                                    format="HH:mm"
-                                    value={classTimes[day]?.end_time ? moment(classTimes[day]?.end_time, "HH:mm") : null}
-                                    onChange={(time) => handleClassTimeChange(day, "end_time", time)}
-                                />
-                            </Form.Item>
-                            <Form.Item label="Phòng học" name={`room_id_${day}`}>
-                            <Select
-                                value={roomSelection[day]}
-                                onChange={(value) => handleRoomChange(day, value)}
-                                placeholder="Chọn phòng học"
-                            >
-                                {rooms.map((room) => (
-                                <Select.Option key={room.id} value={room.id}>
-                                    {room.room_name}
-                                </Select.Option>
-                                ))}
-                            </Select>
-                            </Form.Item>
-
-
-                        </div>
-                    ))}
-                    
-                </Form>
+                <ClassForm
+                    form={form}
+                    teachers={teachers}
+                    rooms={rooms}
+                    weeklySchedule={weeklySchedule}
+                    setWeeklySchedule={setWeeklySchedule}
+                    classTimes={classTimes}
+                    handleClassTimeChange={handleClassTimeChange}
+                    roomSelection={roomSelection}
+                    handleRoomChange={handleRoomChange}
+                />
             </Modal>
         </div>
     );

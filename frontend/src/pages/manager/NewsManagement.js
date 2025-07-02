@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { List, Input, Button, message, Modal, Form, Space, Pagination, Upload, Card, Typography } from "antd";
+import {  Input, Button, message, Modal, Form, Pagination, Upload, Card, Typography } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
 import moment from "moment";
 import usePageTitle from "../common/usePageTitle";
 import { fetchAllNews, createNews, updateNews, deleteNews, uploadNewsImage } from "../../api/news";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const NewsManagement = () => {
     usePageTitle("News Management");
@@ -18,7 +18,7 @@ const NewsManagement = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(5);
+    const [pageSize, setPageSize] = useState(6);
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
@@ -235,7 +235,7 @@ const NewsManagement = () => {
                         setPageSize(size);
                     }}
                     showSizeChanger
-                    pageSizeOptions={["5", "10", "15", "20"]}
+                    pageSizeOptions={["6", "12", "18", "24"]}
                     style={{ borderRadius: 8 }}
                 />
             </div>
