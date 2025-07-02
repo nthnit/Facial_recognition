@@ -136,46 +136,44 @@ const NewsManagement = () => {
     };
 
     return (
-        <div style={{ padding: "20px" }}>
-            <Title level={2} style={{ marginBottom: "20px", textAlign: "center" }}>
+        <div style={{ padding: "30px 10vw", background: "#f4f8fb", minHeight: "100vh" }}>
+            <Title level={2} style={{ marginBottom: "30px", textAlign: "center", color: "#1890ff", letterSpacing: 1 }}>
                 Quản lý Tin tức
             </Title>
 
             {/* Search and Add New News */}
-            <Space style={{ marginBottom: 10, width: "100%", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                 <Input
                     placeholder="Tìm kiếm tin tức..."
                     prefix={<SearchOutlined />}
                     onChange={handleSearch}
                     allowClear
-                    style={{ width: "100%" }}
+                    style={{ width: 350, borderRadius: 8, boxShadow: "0 2px 8px #e6e6e6" }}
                 />
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+                <Button type="primary" icon={<PlusOutlined />} style={{ borderRadius: 8 }} onClick={() => setIsModalOpen(true)}>
                     Đăng tin
                 </Button>
-            </Space>
+            </div>
 
             {/* News List */}
-            <List
-                style={{ marginTop: "20px" }}
-                loading={loading}
-                dataSource={filteredNews}
-                pagination={{
-                    current: currentPage,
-                    pageSize: pageSize,
-                    total: filteredNews.length,
-                    onChange: (page, size) => {
-                        setCurrentPage(page);
-                        setPageSize(size);
-                    },
-                    showSizeChanger: true,
-                    pageSizeOptions: ["5", "10", "15", "20"],
-                    style: { marginBottom: "20px" },
-                }}
-                renderItem={(item) => (
+            <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+                gap: 24,
+                marginTop: 10,
+            }}>
+                {paginatedNews.length > 0 ? paginatedNews.map((item) => (
                     <Card
-                        style={{ marginBottom: "10px" }}
+                        key={item.id}
                         hoverable
+                        style={{
+                            borderRadius: 16,
+                            boxShadow: "0 4px 16px rgba(0,0,0,0.07)",
+                            minHeight: 320,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                        }}
                         actions={[
                             <Button
                                 type="link"
@@ -185,6 +183,7 @@ const NewsManagement = () => {
                                     form.setFieldsValue(item);
                                     setIsModalOpen(true);
                                 }}
+                                style={{ color: "#1890ff" }}
                             >
                                 Sửa
                             </Button>,
@@ -200,26 +199,46 @@ const NewsManagement = () => {
                         ]}
                     >
                         <Card.Meta
-                            title={<Link to={`/news/${item.id}`}>{item.title}</Link>}
+                            title={<Link to={`/news/${item.id}`} style={{ color: "#1890ff", fontWeight: 600 }}>{item.title}</Link>}
                             description={
                                 <>
-                                    <p>{item.content}</p>
+                                    <div style={{ minHeight: 60, marginBottom: 8, color: "#444" }}>{item.content}</div>
                                     {item.image_url && (
                                         <img
                                             src={item.image_url}
                                             alt="News"
-                                            style={{ width: "100px", height: "auto", marginTop: "10px" }}
+                                            style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 10, margin: "10px 0" }}
                                         />
                                     )}
-                                    <p style={{ fontSize: "12px", color: "gray" }}>
+                                    <div style={{ fontSize: 13, color: "#888", marginTop: 8 }}>
                                         Ngày đăng: {moment(item.created_at).format("DD/MM/YYYY")}
-                                    </p>
+                                    </div>
                                 </>
                             }
                         />
                     </Card>
+                )) : (
+                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: "#aaa", fontSize: 18 }}>
+                        Không có tin tức nào để hiển thị.
+                    </div>
                 )}
-            />
+            </div>
+
+            {/* Pagination */}
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+                <Pagination
+                    current={currentPage}
+                    pageSize={pageSize}
+                    total={filteredNews.length}
+                    onChange={(page, size) => {
+                        setCurrentPage(page);
+                        setPageSize(size);
+                    }}
+                    showSizeChanger
+                    pageSizeOptions={["5", "10", "15", "20"]}
+                    style={{ borderRadius: 8 }}
+                />
+            </div>
 
             {/* Modal for Adding and Editing News */}
             <Modal
@@ -228,6 +247,8 @@ const NewsManagement = () => {
                 onOk={editingNews ? () => handleEditNews(editingNews.id) : handleAddNews}
                 onCancel={() => setIsModalOpen(false)}
                 width={600}
+                style={{ top: 60 }}
+                bodyStyle={{ padding: 24 }}
             >
                 <Form form={form} layout="vertical" initialValues={editingNews}>
                     <Form.Item
@@ -235,7 +256,7 @@ const NewsManagement = () => {
                         name="title"
                         rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
                     >
-                        <Input />
+                        <Input style={{ borderRadius: 8 }} />
                     </Form.Item>
 
                     <Form.Item
@@ -243,17 +264,17 @@ const NewsManagement = () => {
                         name="content"
                         rules={[{ required: true, message: "Vui lòng nhập nội dung!" }]}
                     >
-                        <Input.TextArea rows={4} />
+                        <Input.TextArea rows={4} style={{ borderRadius: 8 }} />
                     </Form.Item>
 
                     <Form.Item label="Tải ảnh lên">
                         <Upload customRequest={handleUpload} showUploadList={false}>
-                            <Button icon={<UploadOutlined />} loading={uploading}>Chọn ảnh</Button>
+                            <Button icon={<UploadOutlined />} loading={uploading} style={{ borderRadius: 8 }}>Chọn ảnh</Button>
                         </Upload>
                     </Form.Item>
 
                     <Form.Item label="Ảnh đã tải lên" name="image_url">
-                        <Input placeholder="Đường dẫn ảnh" readOnly />
+                        <Input placeholder="Đường dẫn ảnh" readOnly style={{ borderRadius: 8 }} />
                     </Form.Item>
                 </Form>
             </Modal>

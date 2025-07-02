@@ -14,6 +14,7 @@ from routes.rooms import router as room_router
 from routes.banners import router as banner_router 
 from routes.grades import router as grade_router 
 from routes.sessions import router as session_router 
+from routes.face import router as face_router
 
 # Khởi tạo router chính
 router = APIRouter()
@@ -34,3 +35,4 @@ router.include_router(room_router, prefix="/rooms", tags=["Rooms"])
 router.include_router(banner_router, prefix="/banners", tags=["Banners"])
 router.include_router(grade_router, prefix="/grades", tags=["Grades"])
 router.include_router(session_router, prefix="/sessions", tags=["Sessions"])
+router.include_router(face_router, prefix="/face", tags=["Face"])

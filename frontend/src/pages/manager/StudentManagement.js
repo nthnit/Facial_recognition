@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Input, Space, Typography, message, Popconfirm, DatePicker, Upload } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined, UploadOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, Space, Typography, message, Popconfirm, Form } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from "@ant-design/icons";
 import moment from "moment";
 import * as XLSX from "xlsx"; 
 import { useNavigate, Link } from "react-router-dom";
 import usePageTitle from "../common/usePageTitle";
 import { fetchStudents, createStudent, updateStudent, deleteStudent, uploadStudentImage } from "../../api/students";
+import { detectFaceAPI } from "../../api/face";
+import StudentForm from "../../components/StudentForm";
 
 const { Title } = Typography;
 const StudentManagement = () => {
     usePageTitle("Student Management");
     const [students, setStudents] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]);
-    const [searchText, setSearchText] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [form] = Form.useForm();
+    const [previewImage, setPreviewImage] = useState(null);
+    const [previewFile, setPreviewFile] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchStudentsData();
+        // eslint-disable-next-line
     }, []);
 
     const fetchStudentsData = async () => {
@@ -48,8 +52,6 @@ const StudentManagement = () => {
 
     const handleSearch = (e) => {
         const value = e.target.value.toLowerCase();
-        setSearchText(value);
-        
         const filtered = students.filter(
             (student) =>
                 student.id.toString().includes(value) ||
@@ -57,7 +59,6 @@ const StudentManagement = () => {
                 student.email.toLowerCase().includes(value) ||
                 student.phone_number.includes(value)
         );
-
         setFilteredStudents(filtered);
     };
 
@@ -77,14 +78,31 @@ const StudentManagement = () => {
 
     const handleOk = async () => {
         try {
+            // Validate form trước khi upload ảnh
             const values = await form.validateFields();
+            let imageUrl = form.getFieldValue("image_url");
+            // Nếu có file preview (ảnh mới), kiểm tra khuôn mặt và upload lên cloud trước khi lưu
+            if (previewFile) {
+                setUploading(true);
+                // Gọi API backend kiểm tra khuôn mặt trước khi upload
+                const faceCheck = await detectFaceAPI(previewFile);
+                if (!faceCheck.success) {
+                    setUploading(false);
+                    message.error("Không phát hiện khuôn mặt trong ảnh. Vui lòng chọn ảnh khác!");
+                    return;
+                }
+                // Nếu qua kiểm tra khuôn mặt thì upload lên cloud
+                const response = await uploadStudentImage(previewFile);
+                imageUrl = response.image_url;
+                setUploading(false);
+            }
             const payload = {
                 ...values,
                 date_of_birth: values.date_of_birth ? values.date_of_birth.format("YYYY-MM-DD") : null,
                 admission_year: values.admission_year || new Date().getFullYear(),
                 status: values.status || "active",
                 address: values.address || "Chưa cập nhật",
-                image_url: values.image_url || null
+                image_url: imageUrl || null
             };
             
             if (editingStudent) {
@@ -98,7 +116,14 @@ const StudentManagement = () => {
             fetchStudentsData();
             setIsModalOpen(false);
             form.resetFields();
+            setPreviewImage(null);
+            setPreviewFile(null);
         } catch (error) {
+            setUploading(false);
+            if (error.name === "ValidationError") {
+                // Form chưa hoàn thành
+                return;
+            }
             if (error.response?.status === 400 && error.response.data.detail === "Email đã tồn tại") {
                 message.error("Email đã tồn tại. Vui lòng nhập email khác!");
             } else {
@@ -201,12 +226,11 @@ const StudentManagement = () => {
         message.success("Xuất danh sách học sinh thành công!");
     };
 
-
     return (
         <div style={{ padding: 20 }}>
             <Title level={2}>Quản lý học sinh</Title>
             <Space style={{ marginBottom: 20 }}>
-                <Input placeholder="Tìm kiếm học sinh..." prefix={<SearchOutlined />} onChange={handleSearch} allowClear />
+                <input placeholder="Tìm kiếm học sinh..." onChange={handleSearch} />
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
                     Thêm học sinh
                 </Button>
@@ -219,33 +243,16 @@ const StudentManagement = () => {
                 title={editingStudent ? "Cập nhật học sinh" : "Thêm học sinh"} 
                 open={isModalOpen} 
                 onOk={handleOk} 
-                onCancel={() => setIsModalOpen(false)}
+                onCancel={() => { setIsModalOpen(false); setPreviewImage(null); setPreviewFile(null); }}
             >
-                <Form form={form} layout="vertical">
-                    <Form.Item label="Họ và Tên" name="full_name" rules={[{ required: true, message: "Vui lòng nhập họ tên!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Email" name="email" rules={[{ required: true, type: "email", message: "Vui lòng nhập email hợp lệ!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Số điện thoại" name="phone_number" rules={[{ required: true, message: "Vui lòng nhập số điện thoại!" }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Địa chỉ" name="address">
-                        <Input placeholder="Nhập địa chỉ học sinh" />
-                    </Form.Item>
-                    <Form.Item label="Ngày sinh" name="date_of_birth">
-                        <DatePicker format="YYYY-MM-DD" />
-                    </Form.Item>
-                    <Form.Item label="Tải ảnh lên">
-                        <Upload customRequest={handleUpload} showUploadList={false}>
-                            <Button icon={<UploadOutlined />} loading={uploading}>Chọn ảnh</Button>
-                        </Upload>
-                    </Form.Item>
-                    <Form.Item label="Ảnh đã tải lên" name="image_url">
-                        <Input placeholder="Đường dẫn ảnh" readOnly />
-                     </Form.Item>
-                </Form>
+                <StudentForm
+                    form={form}
+                    editingStudent={editingStudent}
+                    uploading={uploading}
+                    setPreviewFile={setPreviewFile}
+                    previewImage={previewImage}
+                    setPreviewImage={setPreviewImage}
+                />
             </Modal>
         </div>
     );

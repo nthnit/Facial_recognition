@@ -57,69 +57,6 @@ cloudinary.config(
     api_secret="Dp_vonlQ_41ws2R9PrXMGbyX1JM"
 )
 
-# 🟡 API POST: Thêm học sinh mới (chỉ Manager có quyền)
-# @router.post("/", response_model=StudentResponse)
-# def create_student(
-#     student_data: StudentCreate, 
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)  # ✅ Yêu cầu xác thực
-# ):
-#     print("📥 Received Payload:", student_data.dict())
-#     if current_user.role != "manager":
-#         raise HTTPException(status_code=403, detail="Bạn không có quyền thêm học sinh")
-
-#     existing_student = db.query(Student).filter(Student.email == student_data.email).first()
-#     if existing_student:
-#         raise HTTPException(status_code=400, detail="Email đã tồn tại")
-
-#     date_of_birth = student_data.date_of_birth if student_data.date_of_birth else "2000-01-01"
-
-#     new_student = Student(
-#         full_name=student_data.full_name,
-#         email=student_data.email,
-#         phone_number=student_data.phone_number,
-#         address=student_data.address or "Chưa cập nhật",  # ✅ Đảm bảo không bị NULL
-#         date_of_birth=date_of_birth,
-#         admission_year=student_data.admission_year if student_data.admission_year else 2024,
-#         status=student_data.status,
-#         image=student_data.image_url  # Lưu đường dẫn ảnh từ Cloudinary
-#     )
-
-#     db.add(new_student)
-#     db.commit()
-#     db.refresh(new_student)
-#     print(new_student.image)
-#     # 🔹 Đăng ký dữ liệu khuôn mặt ngay sau khi thêm học sinh
-#     if new_student.image:  # Nếu có ảnh
-#         try:
-#             # Lấy ảnh từ Cloudinary
-#             response = requests.get(new_student.image, stream=True)
-#             img_data = response.content
-
-#             if response.status_code != 200:
-#                 raise HTTPException(status_code=404, detail="Không thể tải ảnh từ Cloudinary")
-
-#             # Chuyển dữ liệu hình ảnh thành mảng numpy
-#             nparr = np.frombuffer(img_data, np.uint8)
-#             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-#             # Trích xuất vector đặc trưng bằng DeepFace
-#             result = DeepFace.represent(img, model_name="Facenet")
-#             embedding = result[0]["embedding"]  # Lấy vector đặc trưng từ phần tử đầu tiên
-
-#             # Lưu vector đặc trưng vào bảng face_embeddings
-#             face_embedding = FaceEmbedding(
-#                 student_id=new_student.id,
-#                 embedding=str(embedding)  # Lưu dưới dạng chuỗi
-#             )
-#             db.add(face_embedding)
-#             db.commit()
-#             print("✅ Đăng ký dữ liệu khuôn mặt thành công cho học sinh ID:", new_student.id)
-#         except Exception as e:
-#             print(f"⚠️ Lỗi khi đăng ký dữ liệu khuôn mặt: {e}")
-#             raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý khuôn mặt: {e}")
-
-#     return new_student
 
 import json
 from utils.image_processing import load_image_from_url, detect_and_crop_face, extract_face_embedding
@@ -193,6 +130,16 @@ def update_student(
         raise HTTPException(status_code=404, detail="Học sinh không tồn tại")
 
     old_image_url = student.image
+    new_image_url = student_data.image_url if "image_url" in student_data.dict(exclude_unset=True) else None
+
+    # Nếu có ảnh mới và khác ảnh cũ thì xoá ảnh cũ trên Cloudinary trước khi cập nhật
+    if new_image_url and new_image_url != old_image_url and old_image_url:
+        try:
+            public_id = old_image_url.split('/')[-1].split('.')[0]
+            import cloudinary.uploader
+            cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Lỗi khi xoá ảnh cũ trên Cloudinary: {str(e)}")
 
     for key, value in student_data.dict(exclude_unset=True).items():
         if key != "image_url":
@@ -209,9 +156,7 @@ def update_student(
             img = load_image_from_url(student.image)
             face_img = detect_and_crop_face(img)
             embedding = extract_face_embedding(face_img)
-            
             db.query(FaceEmbedding).filter(FaceEmbedding.student_id == student_id).delete()
-            
             face_embedding = FaceEmbedding(
                 student_id=student_id,
                 embedding=json.dumps(embedding)
@@ -240,6 +185,16 @@ def delete_student(
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    # Xoá ảnh trên Cloudinary nếu có
+    if student.image:
+        try:
+            image_url = student.image
+            public_id = image_url.split('/')[-1].split('.')[0]  # Lấy public_id từ URL ảnh
+            import cloudinary.uploader
+            cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Lỗi khi xoá ảnh trên Cloudinary: {str(e)}")
 
     db.delete(student)
     db.commit()

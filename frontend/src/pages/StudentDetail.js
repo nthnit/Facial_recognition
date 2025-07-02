@@ -26,9 +26,15 @@ const StudentDetail = () => {
     const [classes, setClasses] = useState([]);
     const [sessions, setSessions] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [userRole, setUserRole] = useState(null);
+    // Lấy role từ localStorage
+    const role = localStorage.getItem("role");
 
     useEffect(() => {
         loadData();
+        // Lấy role từ localStorage (hoặc context nếu có)
+        const role = localStorage.getItem("role");
+        setUserRole(role);
     }, []);
 
     const loadData = async () => {
@@ -164,11 +170,14 @@ const StudentDetail = () => {
                         <Button icon={<EditOutlined />} type="primary" onClick={() => showUpdateModal(true)}>
                             Cập nhật
                         </Button>
-                        <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={handleDelete} okText="Xóa" cancelText="Hủy">
-                            <Button icon={<DeleteOutlined />} danger>
-                                Xóa
-                            </Button>
-                        </Popconfirm>
+                        {/* Ẩn nút xoá nếu role là teacher */}
+                        {role !== "teacher" && (
+                            <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={handleDelete} okText="Xóa" cancelText="Hủy">
+                                <Button icon={<DeleteOutlined />} danger>
+                                    Xóa
+                                </Button>
+                            </Popconfirm>
+                        )}
                     </Space>
                 </div>
             </Card>
