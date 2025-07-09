@@ -38,7 +38,6 @@ const AppRoutes = () => {
     return (
         <Router>
             <Routes>
-                {/* Trang login không dùng layout */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/face-attendance/public" element={<FaceAttendancePublic />} />
 
